@@ -1,47 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
 export async function GET() {
   const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY || ''
   
-  const results: any = {
-    hasKey: !!MINIMAX_API_KEY,
-    keyPrefix: MINIMAX_API_KEY.substring(0, 10) + '...',
-    keyLength: MINIMAX_API_KEY.length,
-    endpoint: 'https://api.minimax.io/anthropic/chat/completions',
-    model: 'MiniMax-M2.7'
-  }
+  const endpoints = [
+    'https://api.minimax.io/anthropic/chat/completions',
+    'https://api.minimax.io/anthropic/v1/chat/completions',
+    'https://api.minimax.chat/v1/chat/completions',
+    'https://api.minimax.chat/v1/text/chatcompletion_v2',
+    'https://api.minimax.io/v1/text/chatcompletion_v2',
+  ]
   
-  if (!MINIMAX_API_KEY) {
-    results.error = 'No API key found in environment'
-    return NextResponse.json(results)
-  }
+  const model = 'MiniMax-M2.7'
+  const results: any = {}
   
-  // Test MiniMax
-  try {
-    const response = await fetch(results.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${MINIMAX_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: results.model,
-        messages: [{ role: 'user', content: 'Say hi in 3 words' }],
-        max_tokens: 50
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${MINIMAX_API_KEY}`
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: 'Say hi' }],
+          max_tokens: 20
+        })
       })
-    })
-    
-    const text = await response.text()
-    
-    results.minimax = {
-      status: response.status,
-      body: text.substring(0, 300)
-    }
-  } catch (err: any) {
-    results.minimax = {
-      error: err.message
+      
+      const text = await response.text()
+      results[endpoint] = {
+        status: response.status,
+        body: text.substring(0, 200)
+      }
+    } catch (err: any) {
+      results[endpoint] = { error: err.message }
     }
   }
   
-  return NextResponse.json(results)
+  return NextResponse.json({ keyLength: MINIMAX_API_KEY.length, results })
 }
