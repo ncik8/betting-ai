@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY || ''
-const MINIMAX_URL = 'https://api.minimax.chat/v1/text/chatcompletion_v2'
+const MINIMAX_URL = 'https://api.minimax.io/anthropic/v1/chat/completions'
 
 export async function POST(req: NextRequest) {
   try {
