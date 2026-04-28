@@ -51,9 +51,12 @@ Rules:
 
     if (!response.ok) {
       const error = await response.text()
-      console.error('MiniMax API error:', error)
+      console.error('MiniMax API error:', response.status, error)
       return NextResponse.json({ 
-        response: 'Sorry, AI service is temporarily unavailable.' 
+        error: 'MiniMax API error',
+        status: response.status,
+        body: error,
+        url: MINIMAX_URL
       }, { status: 500 })
     }
 
