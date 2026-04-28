@@ -27,6 +27,19 @@ const LIVE_TABLE: Record<string, { pos: number; pts: number; gd: number; form: s
   "Wolves": { pos: 20, pts: 17, gd: -36, form: "WDLLL" },
 }
 
+const WEEKEND_FIXTURES = [
+  { home: 'Arsenal', away: 'Fulham', date: '03 May' },
+  { home: 'Man United', away: 'Liverpool', date: '03 May' },
+  { home: 'Bournemouth', away: 'Crystal Palace', date: '03 May' },
+  { home: 'Aston Villa', away: 'Tottenham', date: '04 May' },
+  { home: 'Chelsea', away: 'Nottm Forest', date: '04 May' },
+  { home: 'Everton', away: 'Man City', date: '04 May' },
+  { home: 'Sunderland', away: 'Brighton', date: '04 May' },
+  { home: 'Burnley', away: 'Leeds', date: '05 May' },
+  { home: 'Wolves', away: 'Brentford', date: '05 May' },
+  { home: 'Newcastle', away: 'West Ham', date: '05 May' },
+]
+
 function formToNumeric(form: string): number {
   const scores: Record<string, number> = { "W": 3, "D": 1, "L": 0 }
   const chars = form.replace(/\s/g, '').toUpperCase().split('')
@@ -301,10 +314,15 @@ export async function POST(req: NextRequest) {
     // Build prediction context from user's message
     const predictionContext = buildContextFromMessage(message)
 
+    const fixturesList = WEEKEND_FIXTURES.map(f => `${f.home} vs ${f.away} (${f.date})`).join('\n')
+
     const systemPrompt = `You are a blunt football-mad mate giving your prediction to your friends. You're not a betting shop or a textbook - you're just giving your honest opinion.
 
 LIVE LEAGUE TABLE (Premier League May 2026):
 ${Object.entries(LIVE_TABLE).map(([team, d]) => `${team}: ${d.pos}th (${d.pts} pts), Form: ${d.form}`).join('\n')}
+
+THIS WEEKEND'S MATCHES:
+${fixturesList}
 
 ${predictionContext ? `CURRENT MATCH ANALYSIS:\n${predictionContext}` : ''}
 
