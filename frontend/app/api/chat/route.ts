@@ -58,8 +58,19 @@ Rules:
     }
 
     const data = await response.json()
-    const aiResponse = data.choices?.[0]?.message?.content || 
-                      'I\'m not sure how to answer that. Try asking about specific matches!'
+    
+    // MiniMax API response format
+    let aiResponse = data.choices?.[0]?.message?.content 
+                  || data.choices?.[0]?.text?.content
+                  || data.output?.text
+                  || null
+    
+    if (!aiResponse) {
+      console.error('MiniMax unexpected response:', JSON.stringify(data))
+      return NextResponse.json({ 
+        response: "Sorry, I couldn't process that. Try asking about a specific match or team!" 
+      })
+    }
 
     return NextResponse.json({ response: aiResponse })
 
