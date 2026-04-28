@@ -165,7 +165,16 @@ function buildContextFromMessage(message: string): string {
   return ""
 }
 
-function formatPredictionContext(pred: any): string {
+function formatPredictionContext(pred: {
+  home: string;
+  away: string;
+  one_x_two: Record<string, number>;
+  over_under: Record<string, number>;
+  btts: Record<string, number>;
+  corners: Record<string, number>;
+  ht_ft: Record<string, number>;
+  table_context: Record<string, unknown>;
+}): string {
   const labels: Record<string, string> = {
     H: `${pred.home} win`,
     D: "draw",
