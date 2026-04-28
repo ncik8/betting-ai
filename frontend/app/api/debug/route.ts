@@ -43,5 +43,5 @@ export async function GET() {
     }
   }
   
-  return NextResponse.json(results, null, 2)
+  return NextResponse.json(results)
 }
