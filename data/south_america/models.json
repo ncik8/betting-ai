@@ -1,0 +1,44 @@
+{
+  "brazil": {
+    "league": "Brazil Serie A",
+    "total_matches": 5446,
+    "seasons": 15,
+    "models": {
+      "1X2": {
+        "home": 0.0,
+        "draw": 100.0,
+        "away": 0.0
+      },
+      "Over25": {
+        "over": 0.0
+      },
+      "BTTS": {
+        "yes": 100.0
+      }
+    },
+    "avg_total_goals": 2.39,
+    "avg_home_goals": 1.42,
+    "avg_away_goals": 0.97
+  },
+  "argentina": {
+    "league": "Argentina Liga Profesional",
+    "total_matches": 6205,
+    "seasons": 16,
+    "models": {
+      "1X2": {
+        "home": 0.0,
+        "draw": 100.0,
+        "away": 0.0
+      },
+      "Over25": {
+        "over": 0.0
+      },
+      "BTTS": {
+        "yes": 98.5
+      }
+    },
+    "avg_total_goals": 2.23,
+    "avg_home_goals": 1.26,
+    "avg_away_goals": 0.96
+  }
+}

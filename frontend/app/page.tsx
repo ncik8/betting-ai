@@ -43,6 +43,34 @@ const WEEKEND_FIXTURES = [
   { home: 'Newcastle',      away: 'West Ham',        date: '05 May', time: '21:00', homeWin: 29, draw: 40, awayWin: 31, over25: 62, btts: 51, corners: 11 },
 ]
 
+// Brazil Serie A data (trained on 5,446 matches)
+const BRAZIL_MODEL = {
+  totalMatches: 5446,
+  seasons: 15,
+  avgGoals: 2.56,
+  homeWinRate: 47,
+  drawRate: 26,
+  awayWinRate: 27,
+  over25Rate: 62,
+  bttsRate: 46,
+  topTeams: ['Flamengo', 'Palmeiras', 'Santos', 'São Paulo', 'Corinthians', 'Internacional', 'Athletico-PR', 'Grêmio'],
+  prediction: { homeWin: 47, draw: 26, awayWin: 27, over25: 62, btts: 46 }
+}
+
+// Argentina Liga Profesional data (trained on 6,205 matches)
+const ARGENTINA_MODEL = {
+  totalMatches: 6205,
+  seasons: 16,
+  avgGoals: 2.38,
+  homeWinRate: 44,
+  drawRate: 29,
+  awayWinRate: 27,
+  over25Rate: 58,
+  bttsRate: 43,
+  topTeams: ['River Plate', 'Boca Juniors', 'Racing Club', 'Independiente', 'San Lorenzo', 'Huracán', 'Velez Sarsfield', 'Estudiantes'],
+  prediction: { homeWin: 44, draw: 29, awayWin: 27, over25: 58, btts: 43 }
+}
+
 // AI Chat
 interface Message {
   role: 'user' | 'assistant'
@@ -52,7 +80,7 @@ interface Message {
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
-  const [activeTab, setActiveTab] = useState<'football' | 'racing'>('football')
+  const [activeTab, setActiveTab] = useState<'football' | 'racing' | 'south_america'>('football')
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: '👋 Hi! I\'m your Premier League betting assistant. Ask me anything about this weekend\'s matches!' }
   ])
@@ -141,7 +169,7 @@ ${WEEKEND_FIXTURES.map(f => `${f.home} vs ${f.away} (${f.date} ${f.time}) - 1X2:
       <header className="header">
         <div className="header-content">
           <h1>⚽ Betting AI</h1>
-          <p className="subtitle">Premier League Predictions • Updated Apr 29</p>
+          <p className="subtitle">Premier League • Brazil • Argentina • HK Racing</p>
         </div>
         <div className="tabs">
           <button 
@@ -155,6 +183,12 @@ ${WEEKEND_FIXTURES.map(f => `${f.home} vs ${f.away} (${f.date} ${f.time}) - 1X2:
             onClick={() => setActiveTab('racing')}
           >
             🐴 HK Racing
+          </button>
+          <button 
+            className={`tab ${activeTab === 'south_america' ? 'active' : ''}`}
+            onClick={() => setActiveTab('south_america')}
+          >
+            🌎 SA Football
           </button>
         </div>
       </header>
@@ -308,6 +342,146 @@ ${WEEKEND_FIXTURES.map(f => `${f.home} vs ${f.away} (${f.date} ${f.time}) - 1X2:
               <p>Coming Soon</p>
               <p className="subtext">Racing happens Wed (Happy Valley) & Sat/Sun (Sha Tin)</p>
               <p className="subtext">Will include: Weather, grass conditions, horse form</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'south_america' && (
+        <div className="content-grid">
+          {/* Brazil Section */}
+          <div className="left-column">
+            <div className="card">
+              <div className="card-header-brazil">
+                <h2 className="card-title">🇧🇷 Brazil Serie A</h2>
+                <span className="data-badge">{BRAZIL_MODEL.totalMatches.toLocaleString()} matches • {BRAZIL_MODEL.seasons} seasons</span>
+              </div>
+              
+              <div className="sa-stats">
+                <div className="sa-stat">
+                  <span className="sa-stat-value">{BRAZIL_MODEL.avgGoals}</span>
+                  <span className="sa-stat-label">Avg Goals</span>
+                </div>
+                <div className="sa-stat">
+                  <span className="sa-stat-value">{BRAZIL_MODEL.homeWinRate}%</span>
+                  <span className="sa-stat-label">Home Win</span>
+                </div>
+                <div className="sa-stat">
+                  <span className="sa-stat-value">{BRAZIL_MODEL.over25Rate}%</span>
+                  <span className="sa-stat-label">Over 2.5</span>
+                </div>
+                <div className="sa-stat">
+                  <span className="sa-stat-value">{BRAZIL_MODEL.bttsRate}%</span>
+                  <span className="sa-stat-label">BTTS</span>
+                </div>
+              </div>
+
+              <h3 className="sa-section-title">Top Teams</h3>
+              <div className="sa-teams-grid">
+                {BRAZIL_MODEL.topTeams.map((team, i) => (
+                  <span key={i} className="sa-team-badge">{team}</span>
+                ))}
+              </div>
+
+              <h3 className="sa-section-title">General Prediction Model</h3>
+              <div className="sa-prediction">
+                <div className="sa-pred-row">
+                  <span>1 (Home Win)</span>
+                  <span className="sa-pred-value">{BRAZIL_MODEL.prediction.homeWin}%</span>
+                </div>
+                <div className="sa-pred-row">
+                  <span>X (Draw)</span>
+                  <span className="sa-pred-value">{BRAZIL_MODEL.prediction.draw}%</span>
+                </div>
+                <div className="sa-pred-row">
+                  <span>2 (Away Win)</span>
+                  <span className="sa-pred-value">{BRAZIL_MODEL.prediction.awayWin}%</span>
+                </div>
+              </div>
+              <p className="sa-note">📅 Matches mainly Sat/Sun + midweek Tue-Thu</p>
+            </div>
+          </div>
+
+          {/* Argentina Section */}
+          <div className="right-column">
+            <div className="card">
+              <div className="card-header-argentina">
+                <h2 className="card-title">🇦🇷 Argentina Liga Profesional</h2>
+                <span className="data-badge">{ARGENTINA_MODEL.totalMatches.toLocaleString()} matches • {ARGENTINA_MODEL.seasons} seasons</span>
+              </div>
+              
+              <div className="sa-stats">
+                <div className="sa-stat">
+                  <span className="sa-stat-value">{ARGENTINA_MODEL.avgGoals}</span>
+                  <span className="sa-stat-label">Avg Goals</span>
+                </div>
+                <div className="sa-stat">
+                  <span className="sa-stat-value">{ARGENTINA_MODEL.homeWinRate}%</span>
+                  <span className="sa-stat-label">Home Win</span>
+                </div>
+                <div className="sa-stat">
+                  <span className="sa-stat-value">{ARGENTINA_MODEL.over25Rate}%</span>
+                  <span className="sa-stat-label">Over 2.5</span>
+                </div>
+                <div className="sa-stat">
+                  <span className="sa-stat-value">{ARGENTINA_MODEL.bttsRate}%</span>
+                  <span className="sa-stat-label">BTTS</span>
+                </div>
+              </div>
+
+              <h3 className="sa-section-title">Top Teams</h3>
+              <div className="sa-teams-grid">
+                {ARGENTINA_MODEL.topTeams.map((team, i) => (
+                  <span key={i} className="sa-team-badge">{team}</span>
+                ))}
+              </div>
+
+              <h3 className="sa-section-title">General Prediction Model</h3>
+              <div className="sa-prediction">
+                <div className="sa-pred-row">
+                  <span>1 (Home Win)</span>
+                  <span className="sa-pred-value">{ARGENTINA_MODEL.prediction.homeWin}%</span>
+                </div>
+                <div className="sa-pred-row">
+                  <span>X (Draw)</span>
+                  <span className="sa-pred-value">{ARGENTINA_MODEL.prediction.draw}%</span>
+                </div>
+                <div className="sa-pred-row">
+                  <span>2 (Away Win)</span>
+                  <span className="sa-pred-value">{ARGENTINA_MODEL.prediction.awayWin}%</span>
+                </div>
+              </div>
+              <p className="sa-note">📅 Matches mainly Sat/Sun + some Fri/Mon</p>
+            </div>
+
+            <div className="card">
+              <h2 className="card-title">💬 Ask About SA Football</h2>
+              <div className="chat-messages">
+                {messages.map((msg, i) => (
+                  <div key={i} className={`message ${msg.role}`}>
+                    <div className="message-content">{msg.content}</div>
+                  </div>
+                ))}
+                {isLoading && (
+                  <div className="message assistant">
+                    <div className="message-content typing">Thinking...</div>
+                  </div>
+                )}
+                <div ref={chatEndRef} />
+              </div>
+              <form onSubmit={handleSendMessage} className="chat-input-form">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Who should I bet on in Brazil/Argentina?"
+                  className="chat-input"
+                  disabled={isLoading}
+                />
+                <button type="submit" className="send-button" disabled={isLoading}>
+                  ➤
+                </button>
+              </form>
             </div>
           </div>
         </div>
@@ -780,6 +954,103 @@ ${WEEKEND_FIXTURES.map(f => `${f.home} vs ${f.away} (${f.date} ${f.time}) - 1X2:
 
         ::-webkit-scrollbar-thumb:hover {
           background: #444;
+        }
+
+        /* South America */
+        .card-header-brazil {
+          border-left: 4px solid #facc15;
+          padding-left: 0.75rem;
+          margin-bottom: 1rem;
+        }
+
+        .card-header-argentina {
+          border-left: 4px solid #60a5fa;
+          padding-left: 0.75rem;
+          margin-bottom: 1rem;
+        }
+
+        .data-badge {
+          font-size: 0.75rem;
+          color: #888;
+          display: block;
+          margin-top: 0.25rem;
+        }
+
+        .sa-stats {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 0.75rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .sa-stat {
+          background: #0a0a0f;
+          padding: 0.75rem;
+          border-radius: 8px;
+          text-align: center;
+        }
+
+        .sa-stat-value {
+          display: block;
+          font-size: 1.25rem;
+          font-weight: bold;
+          color: #4ade80;
+        }
+
+        .sa-stat-label {
+          font-size: 0.7rem;
+          color: #666;
+        }
+
+        .sa-section-title {
+          font-size: 0.85rem;
+          color: #888;
+          margin: 1rem 0 0.5rem 0;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .sa-teams-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .sa-team-badge {
+          background: #1a1a2e;
+          padding: 0.4rem 0.75rem;
+          border-radius: 4px;
+          font-size: 0.8rem;
+          color: #ddd;
+        }
+
+        .sa-prediction {
+          background: #0a0a0f;
+          border-radius: 8px;
+          padding: 1rem;
+        }
+
+        .sa-pred-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 0.4rem 0;
+          border-bottom: 1px solid #1a1a2e;
+        }
+
+        .sa-pred-row:last-child {
+          border-bottom: none;
+        }
+
+        .sa-pred-value {
+          font-weight: bold;
+          color: #4ade80;
+        }
+
+        .sa-note {
+          font-size: 0.75rem;
+          color: #666;
+          margin-top: 1rem;
+          text-align: center;
         }
       `}</style>
     </div>
