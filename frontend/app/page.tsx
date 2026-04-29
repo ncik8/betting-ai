@@ -105,6 +105,16 @@ export default function Home() {
   const [hkWeather, setHkWeather] = useState<any>(null)
   const [dataLoading, setDataLoading] = useState(false)
 
+  const refreshRacingData = async () => {
+    setDataLoading(true)
+    try {
+      const racingRes = await fetch(HK_RACING_BASE)
+      const racingData = await racingRes.json()
+      if (racingData.success && racingData.data) setHkRacingData(racingData.data)
+    } catch (err) { console.error('HK Racing data error:', err) }
+    setDataLoading(false)
+  }
+
   useEffect(() => {
     async function fetchData() {
       setDataLoading(true)
@@ -228,7 +238,7 @@ export default function Home() {
       {activeTab === 'pl' && <PLContent {...{ plTable, plFixtures, dataLoading, messages, input, isLoading, chatEndRef, handleSendMessage, setInput }} />}
       {activeTab === 'brazil' && <BrazilContent {...{ brazilTable, brazilFixtures, dataLoading, messages, input, isLoading, chatEndRef, handleSendMessage, setInput }} />}
       {activeTab === 'argentina' && <ArgentinaContent {...{ argentinaTable, argentinaFixtures, dataLoading, messages, input, isLoading, chatEndRef, handleSendMessage, setInput }} />}
-      {activeTab === 'racing' && <RacingContent {...{ hkRacingData, hkWeather, messages, input, isLoading, chatEndRef, handleSendMessage, setInput }} />}
+      {activeTab === 'racing' && <RacingContent {...{ hkRacingData, hkWeather, messages, input, isLoading, chatEndRef, handleSendMessage, setInput, refreshRacingData, dataLoading }} />}
     </div>
   )
 }
@@ -382,12 +392,17 @@ function ArgentinaContent({ argentinaTable, argentinaFixtures, dataLoading, mess
 }
 
 // Racing Content Component
-function RacingContent({ hkRacingData, hkWeather, messages, input, isLoading, chatEndRef, handleSendMessage, setInput }: any) {
+function RacingContent({ hkRacingData, hkWeather, messages, input, isLoading, chatEndRef, handleSendMessage, setInput, refreshRacingData, dataLoading }: any) {
   return (
     <div className="content-grid">
       <div className="left-column">
         <div className="card">
-          <h2 className="card-title">HK Horse Racing</h2>
+          <div className="card-header-row">
+            <h2 className="card-title">HK Horse Racing</h2>
+            <button onClick={refreshRacingData} className="refresh-btn" disabled={dataLoading}>
+              {dataLoading ? '...' : '↻'}
+            </button>
+          </div>
           <p className="card-subtitle">Racing happens Wed (Happy Valley) and Sat/Sun (Sha Tin)</p>
           {hkWeather && (
             <div className="weather-info">
@@ -432,6 +447,9 @@ function RacingContent({ hkRacingData, hkWeather, messages, input, isLoading, ch
             <div className="empty-state">
               <p>No racing data today.</p>
               <p className="subtext">Next race day: Wednesday (Happy Valley) or Saturday/Sunday (Sha Tin)</p>
+              <button onClick={refreshRacingData} className="refresh-btn-large" disabled={dataLoading}>
+                {dataLoading ? 'Loading...' : 'Refresh Data'}
+              </button>
             </div>
           </div>
         )}

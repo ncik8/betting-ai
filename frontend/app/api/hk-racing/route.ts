@@ -32,38 +32,45 @@ const fetchPage = async (url: string) => {
 const parseHorseContainer = (html: string): Horse[] => {
   const horses: Horse[] = [];
   
-  // Extract horse-container blocks
-  const containerRegex = /<div class="horse-container"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>\s*<\/div>\s*<\/div>/g;
+  // Match horse-container blocks with new HTML structure
+  const containerRegex = /<div[^>]*class="[^"]*horse-container[^"]*"[^>]*>[\s\S]*?<\/div>\s*<\/div>\s*<\/div>\s*<\/div>\s*<\/div>/g;
   let match;
   
   while ((match = containerRegex.exec(html)) !== null) {
-    const block = match[1];
+    const block = match[0];
     const horse: Partial<Horse> = {};
     
-    // Name
-    const nameMatch = /<span class="css-z5vkvz"[^>]*>([^<]+)<\/span>/.exec(block);
+    // Horse number (draw) - <div class="css-horse-small css-horse2">9</div>
+    const numberMatch = /class="css-horse-small[^"]*"[^>]*>(\d+)</.exec(block);
+    if (numberMatch) horse.draw = numberMatch[1];
+    
+    // Horse name - <span font-weight="700" class="css-z5vkvz">Star Brose</span>
+    const nameMatch = /class="css-z5vkvz"[^>]*>([^<]+)<\/span>/.exec(block);
     if (nameMatch) horse.name = nameMatch[1];
     
-    // Draw
-    const drawMatch = /<div class="css-horse-small[^"]*"[^>]*>(\d+)<\/div>/.exec(block);
-    if (drawMatch) horse.draw = drawMatch[1];
-    
-    // Odds
-    const oddsMatch = /<span class="oddsLink[^"]*"[^>]*>([\d.]+)<\/span>/.exec(block);
+    // Odds - <span class="oddsLink js-btn-modal" data-id="starbrose">2.10</span>
+    const oddsMatch = /class="oddsLink[^"]*"[^>]*>([\d.]+)<\/span>/.exec(block);
     if (oddsMatch) horse.odds = oddsMatch[1];
     
-    // Key-value pairs
-    const kvRegex = /<span>(J:|T:|Age:|Weight:|Form:|Draw:)<\/span><span class="text-bold">([^<]+)<\/span>/g;
-    let kvMatch;
-    while ((kvMatch = kvRegex.exec(block)) !== null) {
-      const [, label, value] = kvMatch;
-      if (label === 'J:') horse.jockey = value;
-      else if (label === 'T:') horse.trainer = value;
-      else if (label === 'Age:') horse.age = value;
-      else if (label === 'Weight:') horse.weight = value;
-      else if (label === 'Form:') horse.form = value;
-      else if (label === 'Draw:') horse.draw = value;
-    }
+    // Jockey - <span>J:</span><span class="text-bold">Zac Purton</span>
+    const jockeyMatch = /<span>J:<\/span><span class="text-bold">([^<]+)<\/span>/.exec(block);
+    if (jockeyMatch) horse.jockey = jockeyMatch[1];
+    
+    // Trainer - <span>T:</span><span class="text-bold">D A Hayes</span>
+    const trainerMatch = /<span>T:<\/span><span class="text-bold">([^<]+)<\/span>/.exec(block);
+    if (trainerMatch) horse.trainer = trainerMatch[1];
+    
+    // Age - <span>Age:</span><span class="text-bold">5</span>
+    const ageMatch = /<span>Age:<\/span><span class="text-bold">(\d+)<\/span>/.exec(block);
+    if (ageMatch) horse.age = ageMatch[1];
+    
+    // Weight - <span>Weight:</span><span class="text-bold">8-10</span>
+    const weightMatch = /<span>Weight:<\/span><span class="text-bold">([^<]+)<\/span>/.exec(block);
+    if (weightMatch) horse.weight = weightMatch[1];
+    
+    // Form - <span>Form:</span><span class="text-bold">8643519523</span>
+    const formMatch = /<span>Form:<\/span><span class="text-bold">([^<]+)<\/span>/.exec(block);
+    if (formMatch) horse.form = formMatch[1];
     
     if (horse.name) horses.push(horse as Horse);
   }

@@ -86,3 +86,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .horse-name { flex: 1; }
 .horse-odds { color: #facc15; }
 .horse-form { color: #888; }
+.card-header-row { display: flex; justify-content: space-between; align-items: center; }
+.card-header-row .card-title { margin-bottom: 0; }
+.refresh-btn { background: #3b82f6; color: white; border: none; border-radius: 6px; padding: 6px 12px; font-size: 16px; cursor: pointer; transition: background 0.2s; }
+.refresh-btn:hover { background: #2563eb; }
+.refresh-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+.refresh-btn-large { background: #3b82f6; color: white; border: none; border-radius: 8px; padding: 12px 24px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 12px; transition: background 0.2s; }
+.refresh-btn-large:hover { background: #2563eb; }
+.refresh-btn-large:disabled { background: #9ca3af; cursor: not-allowed; }
