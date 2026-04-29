@@ -92,6 +92,15 @@ const getRaceTimes = async (venue: string, date: string): Promise<string[]> => {
   return Array.from(new Set(times)).sort();
 };
 
+// Convert UK time (GMT) to HK time (GMT+8)
+const convertToHKTime = (ukTime: string): string => {
+  const [hours, minutes] = ukTime.split(':').map(Number);
+  let hkHour = hours + 8;
+  // Handle next day (if +8 crosses midnight)
+  if (hkHour >= 24) hkHour -= 24;
+  return `${String(hkHour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
 const getRaceCard = async (date: string, venue: string, raceTime: string): Promise<Race | null> => {
   const url = `${BASE_URL}/daily/${venue}/${date}/${raceTime}`;
   const html = await fetchPage(url);
@@ -107,7 +116,7 @@ const getRaceCard = async (date: string, venue: string, raceTime: string): Promi
   const horses = parseHorseContainer(html);
   
   return {
-    time: raceTime.replace('-', ':'),
+    time: convertToHKTime(raceTime.replace('-', ':')),
     race_name: raceName,
     horses
   };
