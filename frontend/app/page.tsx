@@ -9,6 +9,7 @@ const CORRECT_PASSWORD='football2024'
 // API Base URLs
 const API_BASE = '/api/football'
 const SOFASCORE_BASE = '/api/sofascore'
+const HK_RACING_BASE = '/api/hk-racing'
 
 // League IDs for API
 const LEAGUE_KEYS = {
@@ -142,6 +143,8 @@ export default function Home() {
   const [brazilFixtures, setBrazilFixtures] = useState<any[]>([])
   const [argentinaTable, setArgentinaTable] = useState<any[]>([])
   const [argentinaFixtures, setArgentinaFixtures] = useState<any[]>([])
+  const [hkRacingData, setHkRacingData] = useState<any>(null)
+  const [hkWeather, setHkWeather] = useState<any>(null)
   const [dataLoading, setDataLoading] = useState(false)
 
   // Fetch live data on mount
@@ -231,6 +234,28 @@ export default function Home() {
           }
         } catch (err) {
           console.error('Argentina data error:', err)
+        }
+        
+        // Fetch HK Racing data
+        try {
+          const racingRes = await fetch(HK_RACING_BASE)
+          const racingData = await racingRes.json()
+          if (racingData.success && racingData.data) {
+            setHkRacingData(racingData.data)
+          }
+        } catch (err) {
+          console.error('HK Racing data error:', err)
+        }
+        
+        // Fetch HK Weather
+        try {
+          const weatherRes = await fetch('/api/weather')
+          const weatherData = await weatherRes.json()
+          if (weatherData.success && weatherData.data) {
+            setHkWeather(weatherData.data)
+          }
+        } catch (err) {
+          console.error('HK Weather error:', err)
         }
       } catch (err) {
         console.error('Error fetching data:', err)
@@ -322,14 +347,34 @@ Season: February - December (mostly Sat/Sun + some Fri/Mon)
 ML Model trained on Argentine football data. Answer questions about Argentina Liga Profesional matches and betting.
 `
     } else if (activeTab === 'racing') {
-      context = `
-HK Horse Racing Information:
-- Racing happens Wed (Happy Valley) and Sat/Sun (Sha Tin)
-- Weather and grass conditions affect performance
-- Happy Valley: Turf (Wednesday)
-- Sha Tin: Turf (Saturday/Sunday)
+      const weatherText = hkWeather ? `
+Current HK Weather:
+${Object.entries(hkWeather).map(([key, w]: [string, any]) => `
+${w.venue}:
+- Weather: ${w.condition}, ${w.temperature}°C
+- Humidity: ${w.humidity}% | Wind: ${w.windSpeed}km/h ${w.windDirection}
+- Rain: ${w.precipitation}mm | UV: ${w.uvIndex}
+- Grass Track: ${w.grassCondition}
+- Racing Tip: ${w.racingAdvice}
+`).join('')}
+` : ''
 
-Coming soon: Live race data, horse form, trainer stats, and AI predictions.
+      const racingText = hkRacingData ? `
+Today's HK Racecards:
+${Object.entries(hkRacingData).map(([venue, data]: [string, any]) => `
+📍 ${venue}
+${data.races?.map((r: any) => `
+Race ${r.time} - ${r.race_name}
+${r.horses?.slice(0, 8).map((h: any) => `#${h.draw} ${h.name} | Odds: ${h.odds} | Form: ${h.form} | Wgt: ${h.weight} | J: ${h.jockey}`).join('\n')}
+`).join('')}
+`).join('')}
+` : 'No racing data today. Racing schedule: Wed (Happy Valley), Sat/Sun (Sha Tin).'}
+
+      context = weatherText + racingText + `
+Based on the weather and race data above, recommend:
+1. Best draw position advantage
+2. Jockey/trainer combo to follow
+3. Value bet (odds vs form analysis)
 `
     }
 

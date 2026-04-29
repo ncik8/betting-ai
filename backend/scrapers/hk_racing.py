@@ -1,208 +1,176 @@
 """
-HK Horse Racing Scraper
-Scrapes HKJC race cards and horse data for Sha Tin and Happy Valley
+HK Horse Racing scraper using racing-odds.com
 """
-
-import os
-import httpx
-from datetime import datetime, timedelta
+import requests
 from bs4 import BeautifulSoup
-from typing import Optional
-from dotenv import load_dotenv
-import asyncio
+from datetime import datetime
+import re
+import json
 
-load_dotenv()
+BASE_URL = "https://www.racing-odds.com"
 
-# HKJC Race Card URLs
-HKJC_BASE_URL = "https://racing.hkjf.com"
-SHA_TIN_VENUE = "Sha Tin"
-HAPPY_VALLEY_VENUE = "Happy Valley"
-
-class HKRacingScraper:
-    def __init__(self):
-        self.session = httpx.AsyncClient(
-            headers={
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
-            },
-            timeout=30.0
-        )
+def get_todays_races(venue: str = None) -> dict:
+    """
+    Get all HK races for today.
+    venue: 'happy-valley' or 'sha-tin' or None for both
+    """
+    today = datetime.now().strftime("%Y-%m-%d")
+    results = {}
     
-    async def get_today_races(self) -> list:
-        """Get today's HK races"""
-        today = datetime.now().strftime("%%Y-%%m-%%d")
-        return await self._fetch_races(date=today)
+    venues = ['happy-valley', 'sha-tin'] if venue is None else [venue]
     
-    async def get_races_by_date(self, date: str) -> list:
-        """Get races for a specific date"""
-        return await self._fetch_races(date=date)
-    
-    async def get_race_card(self, meeting_id: str, race_num: int) -> dict:
-        """Get detailed race card for a specific race"""
-        url = f"{HKJC_BASE_URL}/rc/card/ajax/getRaceCard"
-        params = {"meetingId": meeting_id, "raceNo": race_num}
-        
+    for v in venues:
+        url = f"{BASE_URL}/daily/{v}/{today}"
         try:
-            response = await self.session.get(url, params=params)
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            print(f"Error fetching race card: {e}")
-            return self._mock_race_card(race_num)
-    
-    async def _fetch_races(self, date: str) -> list:
-        """Fetch races from HKJC"""
-        # HKJC uses a different URL structure for race meetings
-        url = f"{HKJC_BASE_URL}/rc/ajax/meeting"
-        params = {"date": date.replace("-", "")}
-        
-        try:
-            response = await self.session.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
-            return self._parse_meetings(data)
-        except Exception as e:
-            print(f"Error fetching races: {e}")
-            return self._mock_races()
-    
-    def _parse_meetings(self, data: dict) -> list:
-        """Parse HKJC API response into normalized format"""
-        races = []
-        meetings = data.get("meetings", [])
-        
-        for meeting in meetings:
-            venue = meeting.get("venueName", "")
-            if "Sha Tin" in venue:
-                venue = SHA_TIN_VENUE
-            elif "Happy Valley" in venue:
-                venue = HAPPY_VALLEY_VENUE
+            resp = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
+            if resp.status_code != 200:
+                continue
+                
+            soup = BeautifulSoup(resp.text, 'html.parser')
             
-            for race in meeting.get("races", []):
-                races.append({
-                    "id": f"{meeting.get('id')}_{race.get('raceNo')}",
-                    "meeting_id": meeting.get("id"),
-                    "venue": venue,
-                    "race_number": race.get("raceNo"),
-                    "race_time": race.get("raceTime", "")[:5],  # HH:MM format
-                    "distance": race.get("distance", 0),
-                    "going": meeting.get("going", ""),
-                    "class": race.get("class", ""),
-                    "prize": race.get("prize", ""),
-                })
-        
-        return races
-    
-    async def get_horse_details(self, horse_id: str) -> dict:
-        """Get detailed horse information"""
-        url = f"{HKJC_BASE_URL}/rc/horse/{horse_id}"
-        
-        try:
-            response = await self.session.get(url)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, "lxml")
-            return self._parse_horse_page(soup)
+            # Find all race times on the page
+            race_times = []
+            for link in soup.find_all('a', href=True):
+                href = link.get('href', '')
+                if f'/daily/{v}/{today}/' in href:
+                    match = re.search(r'/(\d{2}-\d{2})$', href)
+                    if match:
+                        race_times.append(match.group(1))
+            
+            race_times = list(set(race_times))  # Remove duplicates
+            race_times.sort()
+            
+            races = []
+            for time_str in race_times:
+                race = get_race_card(today, v, time_str)
+                if race and race.get('horses'):
+                    races.append(race)
+            
+            if races:
+                results[v.replace('-', ' ').title()] = {
+                    'venue': v,
+                    'date': today,
+                    'races': races
+                }
+                
         except Exception as e:
-            print(f"Error fetching horse: {e}")
-            return {}
+            print(f"Error fetching {v}: {e}")
     
-    def _parse_horse_page(self, soup: BeautifulSoup) -> dict:
-        """Parse horse details from HKJC page"""
-        name = soup.select_one(".horse-name")
-        info = soup.select_one(".horse-info")
+    return results
+
+
+def get_race_card(date: str, venue: str, race_time: str) -> dict:
+    """
+    Get race card for a specific race.
+    date: YYYY-MM-DD
+    venue: 'happy-valley' or 'sha-tin'
+    race_time: HH-MM (e.g., 11-40)
+    """
+    url = f"{BASE_URL}/daily/{venue}/{date}/{race_time}"
+    
+    try:
+        resp = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
+        if resp.status_code != 200:
+            return None
+            
+        soup = BeautifulSoup(resp.text, 'html.parser')
         
-        return {
-            "name": name.text.strip() if name else "",
-            "info": info.text.strip() if info else "",
+        race_info = {
+            'time': race_time.replace('-', ':'),
+            'race_name': '',
+            'horses': []
         }
+        
+        # Get race title from h1
+        h1 = soup.find('h1')
+        if h1:
+            race_info['race_name'] = h1.get_text(strip=True)
+        
+        # Parse horses
+        containers = soup.find_all('div', class_='horse-container')
+        
+        for c in containers:
+            horse = {}
+            
+            # Name
+            name = c.find('span', class_='css-z5vkvz')
+            if name:
+                horse['name'] = name.get_text(strip=True)
+            
+            # Draw
+            draw = c.find('div', class_='css-horse-small')
+            if draw:
+                horse['draw'] = draw.get_text(strip=True)
+            
+            # Odds (first occurrence)
+            odds = c.find('span', class_='oddsLink')
+            if odds:
+                horse['odds'] = odds.get_text(strip=True)
+            
+            # Key-value pairs
+            for div in c.find_all('div', class_='css-wenkbk'):
+                spans = div.find_all('span')
+                if len(spans) >= 2:
+                    label = spans[0].get_text(strip=True)
+                    value = spans[1].get_text(strip=True)
+                    if label == 'J:':
+                        horse['jockey'] = value
+                    elif label == 'T:':
+                        horse['trainer'] = value
+                    elif label == 'Age:':
+                        horse['age'] = value
+                    elif label == 'Weight:':
+                        horse['weight'] = value
+                    elif label == 'Form:':
+                        horse['form'] = value
+                    elif label == 'Draw:':
+                        horse['draw'] = value
+            
+            if horse.get('name'):
+                race_info['horses'].append(horse)
+        
+        return race_info
+        
+    except Exception as e:
+        print(f"Error getting race card: {e}")
+        return None
+
+
+def format_for_ai(data: dict) -> str:
+    """Format HK racing data for the AI chat context."""
+    if not data:
+        return "No HK racing data available today."
     
-    def _mock_races(self) -> list:
-        """Return mock data when API is not available"""
-        today = datetime.now()
-        is_wednesday = today.weekday() == 2  # Wed = Happy Valley
-        
-        venue = HAPPY_VALLEY_VENUE if is_wednesday else SHA_TIN_VENUE
-        
-        races = []
-        for i in range(1, 11):
-            races.append({
-                "id": f"mock_{venue}_{i}",
-                "venue": venue,
-                "race_number": i,
-                "race_time": f"{14 + i//2:02d}:{30 if i % 2 == 0 else 0:02d}",
-                "distance": [1200, 1400, 1600, 1800, 2000, 2200, 1000, 1200, 1400, 1600][i-1],
-                "going": "Good",
-                "class": f"Class {4 - (i % 4)}",
-                "prize": f"${1000000 - i * 50000}",
-            })
-        
-        return races
+    output = "🏇 HK Horse Racing - Today's Races\n\n"
     
-    def _mock_race_card(self, race_num: int) -> dict:
-        """Mock race card with horses"""
-        horses = []
-        horse_names = [
-            "Champion Star", "Lucky Express", "Golden Power", "Thunder Bolt",
-            "Happy Days", "Victory March", "Flying Dragon", "Smart Choice",
-            "Big Boss", "Super Sonic", "Mighty Mouse", "Fast Track"
-        ]
+    for venue_name, venue_data in data.items():
+        output += f"📍 {venue_name}\n"
+        output += "-" * 40 + "\n"
         
-        for i, name in enumerate(horse_names[:12], 1):
-            horses.append({
-                "horse_number": i,
-                "name": f"{name} {i}",
-                "draw": i,
-                "jockey": f"Jockey {i}",
-                "trainer": f"Trainer {i}",
-                "weight": 1150 + i * 10,
-                "last_5": f"{i}-{(i*2)%5+1}-{(i*3)%5+1}-{(i*4)%5+1}-{(i*5)%5+1}",
-                "rating": 85 + i,
-            })
+        for race in venue_data.get('races', []):
+            output += f"\n⏰ {race.get('time', '??:??')} - {race.get('race_name', 'Unknown Race')}\n"
+            output += f"Runners: {len(race.get('horses', []))}\n"
+            
+            # Sort by draw number
+            horses = sorted(race.get('horses', []), key=lambda x: int(x.get('draw', 0)) if x.get('draw', '').isdigit() else 999)
+            
+            for h in horses:
+                odds = h.get('odds', 'N/A')
+                form = h.get('form', 'N/A')
+                jockey = h.get('jockey', 'N/A')
+                trainer = h.get('trainer', 'N/A')
+                weight = h.get('weight', 'N/A')
+                output += f"  #{h.get('draw', '?')} {h.get('name', 'Unknown')}\n"
+                output += f"      Odds: {odds} | Form: {form} | Wgt: {weight}\n"
+                output += f"      Jockey: {jockey} | Trainer: {trainer}\n"
         
-        return {"horses": horses}
+        output += "\n"
     
-    async def close(self):
-        await self.session.aclose()
-
-
-# Standalone functions
-async def fetch_today_races() -> list:
-    scraper = HKRacingScraper()
-    try:
-        return await scraper.get_today_races()
-    finally:
-        await scraper.close()
-
-async def fetch_race_card(meeting_id: str, race_num: int) -> dict:
-    scraper = HKRacingScraper()
-    try:
-        return await scraper.get_race_card(message_id, race_num)
-    finally:
-        await scraper.close()
-
-
-# Check if racing today
-def get_racing_day_info() -> dict:
-    """Get venue info based on day of week"""
-    today = datetime.now()
-    weekday = today.weekday()
-    
-    # HK Racing days: Wednesday (Happy Valley), Sat/Sun (Sha Tin)
-    if weekday == 2:  # Wednesday
-        return {"day": "Wednesday", "venue": HAPPY_VALLEY_VENUE, "is_racing_day": True}
-    elif weekday in [5, 6]:  # Saturday, Sunday
-        return {"day": "Weekend", "venue": SHA_TIN_VENUE, "is_racing_day": True}
-    else:
-        return {"day": today.strftime("%%A"), "venue": None, "is_racing_day": False}
+    return output
 
 
 if __name__ == "__main__":
-    async def test():
-        info = get_racing_day_info()
-        print(f"Today: {info}")
-        
-        scraper = HKRacingScraper()
-        races = await scraper.get_today_races()
-        print(f"Found {len(races)} races")
-        
-        await scraper.close()
+    print("=== HK Horse Racing Scraper ===\n")
     
-    asyncio.run(test())
+    data = get_todays_races()
+    print(format_for_ai(data))
