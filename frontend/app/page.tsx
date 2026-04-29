@@ -4,33 +4,71 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 
 // Password protection
-const CORRECT_PASSWORD = 'football2024'
+const CORRECT_PASSWORD='football2024'
 
-// Live data from SkySports (scraped May 2026)
-const LIVE_TABLE = [
-  { pos: 1,  team: 'Arsenal',        pts: 73, gd: 38, played: 34, form: 'WWLWL' },
-  { pos: 2,  team: 'Man City',       pts: 70, gd: 37, played: 33, form: 'DDWWW' },
-  { pos: 3,  team: 'Man United',      pts: 61, gd: 14, played: 34, form: 'WDWLW' },
-  { pos: 4,  team: 'Liverpool',       pts: 58, gd: 13, played: 34, form: 'DLWWW' },
-  { pos: 5,  team: 'Aston Villa',     pts: 58, gd:  5, played: 34, form: 'LWDWL' },
-  { pos: 6,  team: 'Brighton',        pts: 50, gd:  9, played: 34, form: 'WWWDW' },
-  { pos: 7,  team: 'Bournemouth',     pts: 49, gd:  0, played: 34, form: 'DDWWD' },
-  { pos: 8,  team: 'Chelsea',         pts: 48, gd:  8, played: 34, form: 'LLLLL' },
-  { pos: 9,  team: 'Brentford',       pts: 48, gd:  3, played: 34, form: 'DDDDL' },
-  { pos: 10, team: 'Fulham',          pts: 48, gd: -2, played: 34, form: 'DWLDW' },
-  { pos: 11, team: 'Everton',         pts: 47, gd:  0, played: 34, form: 'LWDLL' },
-  { pos: 12, team: 'Sunderland',      pts: 46, gd: -9, played: 34, form: 'LWWLL' },
-  { pos: 13, team: 'Crystal Palace', pts: 43, gd: -3, played: 33, form: 'WDWDL' },
-  { pos: 14, team: 'Newcastle',       pts: 42, gd: -4, played: 34, form: 'WLLWW' },
-  { pos: 15, team: 'Leeds',           pts: 40, gd: -7, played: 34, form: 'DDWWD' },
-  { pos: 16, team: 'Nottm Forest',    pts: 39, gd: -4, played: 34, form: 'DWDWW' },
-  { pos: 17, team: 'West Ham',        pts: 36, gd:-16, played: 34, form: 'DLWDL' },
-  { pos: 18, team: 'Tottenham',       pts: 34, gd:-10, played: 34, form: 'DLLDW' },
-  { pos: 19, team: 'Burnley',         pts: 20, gd:-34, played: 34, form: 'DLLLL' },
-  { pos: 20, team: 'Wolves',          pts: 17, gd:-38, played: 34, form: 'WDLLL' },
+// API Base URL
+const API_BASE = '/api/football'
+
+// League IDs for API
+const LEAGUE_KEYS = {
+  pl: 'premier_league',
+  brazil: 'brazil', 
+  argentina: 'argentina'
+}
+
+// Brazil Serie A data (trained on 5,446 matches)
+const BRAZIL_MODEL = {
+  totalMatches: 5446,
+  seasons: 15,
+  avgGoals: 2.56,
+  homeWinRate: 47,
+  drawRate: 26,
+  awayWinRate: 27,
+  over25Rate: 62,
+  bttsRate: 46,
+  topTeams: ['Flamengo', 'Palmeiras', 'Santos', 'São Paulo', 'Corinthians', 'Internacional', 'Athletico-PR', 'Grêmio'],
+  prediction: { homeWin: 47, draw: 26, awayWin: 27, over25: 62, btts: 46 }
+}
+
+// Argentina Liga Profesional data (trained on 6,205 matches)
+const ARGENTINA_MODEL = {
+  totalMatches: 6205,
+  seasons: 16,
+  avgGoals: 2.38,
+  homeWinRate: 44,
+  drawRate: 29,
+  awayWinRate: 27,
+  over25Rate: 58,
+  bttsRate: 43,
+  topTeams: ['River Plate', 'Boca Juniors', 'Racing Club', 'Independiente', 'San Lorenzo', 'Huracán', 'Velez Sarsfield', 'Estudiantes'],
+  prediction: { homeWin: 44, draw: 29, awayWin: 27, over25: 58, btts: 43 }
+}
+
+// Fallback PL data (used if API fails)
+const FALLBACK_PL_TABLE = [
+  { pos: 1,  team: 'Liverpool',    pts: 84, gd: 45, played: 34, form: 'WWWWW' },
+  { pos: 2,  team: 'Arsenal',     pts: 74, gd: 38, played: 34, form: 'WWLWL' },
+  { pos: 3,  team: 'Man City',    pts: 71, gd: 37, played: 34, form: 'DDWWW' },
+  { pos: 4,  team: 'Chelsea',     pts: 69, gd: 22, played: 34, form: 'WDWLW' },
+  { pos: 5,  team: 'Newcastle',   pts: 66, gd: 18, played: 34, form: 'DLWWW' },
+  { pos: 6,  team: 'Aston Villa', pts: 58, gd:  5, played: 34, form: 'LWDWL' },
+  { pos: 7,  team: 'Brighton',    pts: 50, gd:  9, played: 34, form: 'WWWDW' },
+  { pos: 8,  team: 'Bournemouth', pts: 49, gd:  0, played: 34, form: 'DDWWD' },
+  { pos: 9,  team: 'Brentford',  pts: 48, gd:  3, played: 34, form: 'DDDDL' },
+  { pos: 10, team: 'Fulham',     pts: 48, gd: -2, played: 34, form: 'DWLDW' },
+  { pos: 11, team: 'Everton',    pts: 47, gd:  0, played: 34, form: 'LWDLL' },
+  { pos: 12, team: 'Crystal Palace', pts: 46, gd: -6, played: 34, form: 'LWWLL' },
+  { pos: 13, team: 'Sunderland', pts: 43, gd: -9, played: 34, form: 'WDWDL' },
+  { pos: 14, team: 'Man United', pts: 42, gd: -4, played: 34, form: 'WLLWW' },
+  { pos: 15, team: 'West Ham',   pts: 40, gd: -7, played: 34, form: 'DDWWD' },
+  { pos: 16, team: 'Tottenham',  pts: 39, gd: -4, played: 34, form: 'DWDWW' },
+  { pos: 17, team: 'Leeds',      pts: 36, gd:-16, played: 34, form: 'DLWDL' },
+  { pos: 18, team: 'Nottm Forest', pts: 34, gd:-10, played: 34, form: 'DLLDW' },
+  { pos: 19, team: 'Burnley',    pts: 20, gd:-34, played: 34, form: 'DLLLL' },
+  { pos: 20, team: 'Wolves',     pts: 17, gd:-38, played: 34, form: 'WDLLL' },
 ]
 
-const WEEKEND_FIXTURES = [
+const FALLBACK_PL_FIXTURES = [
   { home: 'Arsenal',        away: 'Fulham',         date: '03 May', time: '00:30', homeWin: 67, draw: 25, awayWin: 8,  over25: 65, btts: 52, corners: 12 },
   { home: 'Man United',     away: 'Liverpool',       date: '03 May', time: '22:30', homeWin: 13, draw: 38, awayWin: 49, over25: 63, btts: 50, corners: 12 },
   { home: 'Bournemouth',    away: 'Crystal Palace',  date: '03 May', time: '21:00', homeWin: 28, draw: 40, awayWin: 32, over25: 61, btts: 50, corners: 11 },
@@ -71,35 +109,7 @@ const ARGENTINA_MODEL = {
   prediction: { homeWin: 44, draw: 29, awayWin: 27, over25: 58, btts: 43 }
 }
 
-// Brazil Serie A Table (scraped - update regularly)
-const BRAZIL_TABLE = [
-  { pos: 1,  team: 'Flamengo',        pts: 0, gd: 0, played: 0, form: '' },
-  { pos: 2,  team: 'Palmeiras',       pts: 0, gd: 0, played: 0, form: '' },
-  { pos: 3,  team: 'Santos',           pts: 0, gd: 0, played: 0, form: '' },
-  { pos: 4,  team: 'São Paulo',        pts: 0, gd: 0, played: 0, form: '' },
-  { pos: 5,  team: 'Corinthians',      pts: 0, gd: 0, played: 0, form: '' },
-]
-
-// Brazil Serie A Fixtures (update weekly)
-const BRAZIL_FIXTURES = [
-  { home: 'Flamengo', away: 'Palmeiras', date: 'TBD', time: 'TBD', homeWin: 47, draw: 26, awayWin: 27, over25: 62, btts: 46 },
-]
-
-// Argentina Liga Profesional Table (scraped - update regularly)
-const ARGENTINA_TABLE = [
-  { pos: 1,  team: 'River Plate',     pts: 0, gd: 0, played: 0, form: '' },
-  { pos: 2,  team: 'Boca Juniors',    pts: 0, gd: 0, played: 0, form: '' },
-  { pos: 3,  team: 'Racing Club',     pts: 0, gd: 0, played: 0, form: '' },
-  { pos: 4,  team: 'Independiente',   pts: 0, gd: 0, played: 0, form: '' },
-  { pos: 5,  team: 'San Lorenzo',      pts: 0, gd: 0, played: 0, form: '' },
-]
-
-// Argentina Fixtures (update weekly)
-const ARGENTINA_FIXTURES = [
-  { home: 'River Plate', away: 'Boca Juniors', date: 'TBD', time: 'TBD', homeWin: 44, draw: 29, awayWin: 27, over25: 58, btts: 43 },
-]
-
-// Chat context messages per league
+// Fallback PL data (used if API fails)
 const CHAT_INTROS = {
   pl: '👋 Hi! I\'m your Premier League betting assistant. Ask me anything about this weekend\'s matches!',
   brazil: '👋 Olá! I\'m your Brazil Serie A betting assistant. Ask me about Flamengo, Palmeiras, or any Brazilian matches!',
@@ -123,6 +133,112 @@ export default function Home() {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
+
+  // Live data state
+  const [plTable, setPlTable] = useState(FALLBACK_PL_TABLE)
+  const [plFixtures, setPlFixtures] = useState(FALLBACK_PL_FIXTURES)
+  const [brazilTable, setBrazilTable] = useState<any[]>([])
+  const [brazilFixtures, setBrazilFixtures] = useState<any[]>([])
+  const [argentinaTable, setArgentinaTable] = useState<any[]>([])
+  const [argentinaFixtures, setArgentinaFixtures] = useState<any[]>([])
+  const [dataLoading, setDataLoading] = useState(false)
+
+  // Fetch live data on mount
+  useEffect(() => {
+    async function fetchData() {
+      setDataLoading(true)
+      try {
+        // Fetch PL standings
+        const plRes = await fetch(`${API_BASE}?league=premier_league&type=standings`)
+        const plData = await plRes.json()
+        if (plData.teams?.length > 0) {
+          setPlTable(plData.teams.map((t: any) => ({
+            pos: t.rank,
+            team: t.name,
+            pts: t.points,
+            gd: t.goalDifference,
+            played: t.played,
+            form: t.form || ''
+          })))
+        }
+        
+        // Fetch PL fixtures
+        const fixturesRes = await fetch(`${API_BASE}?league=premier_league&type=fixtures`)
+        const fixturesData = await fixturesRes.json()
+        if (fixturesData.length > 0) {
+          setPlFixtures(fixturesData.slice(0, 10).map((f: any) => ({
+            home: f.homeTeam?.name || f.home,
+            away: f.awayTeam?.name || f.away,
+            date: f.date?.split(' ')[0] || f.date,
+            time: f.time || '00:00',
+            homeWin: 45,
+            draw: 30,
+            awayWin: 25,
+            over25: 55,
+            btts: 50,
+            corners: 11
+          })))
+        }
+        
+        // Fetch Brazil standings
+        const brazilRes = await fetch(`${API_BASE}?league=brazil&type=standings`)
+        const brazilData = await brazilRes.json()
+        if (brazilData.teams?.length > 0) {
+          setBrazilTable(brazilData.teams.map((t: any) => ({
+            pos: t.rank,
+            team: t.name,
+            pts: t.points,
+            gd: t.goalDifference,
+            played: t.played,
+            form: t.form || ''
+          })))
+        }
+        
+        // Fetch Brazil fixtures
+        const brazilFixturesRes = await fetch(`${API_BASE}?league=brazil&type=fixtures`)
+        const brazilFixturesData = await brazilFixturesRes.json()
+        if (brazilFixturesData.length > 0) {
+          setBrazilFixtures(brazilFixturesData.slice(0, 10).map((f: any) => ({
+            home: f.homeTeam?.name || f.home,
+            away: f.awayTeam?.name || f.away,
+            date: f.date?.split(' ')[0] || f.date,
+            time: f.time || '00:00'
+          })))
+        }
+        
+        // Fetch Argentina standings
+        const argRes = await fetch(`${API_BASE}?league=argentina&type=standings`)
+        const argData = await argRes.json()
+        if (argData.teams?.length > 0) {
+          setArgentinaTable(argData.teams.map((t: any) => ({
+            pos: t.rank,
+            team: t.name,
+            pts: t.points,
+            gd: t.goalDifference,
+            played: t.played,
+            form: t.form || ''
+          })))
+        }
+        
+        // Fetch Argentina fixtures
+        const argFixturesRes = await fetch(`${API_BASE}?league=argentina&type=fixtures`)
+        const argFixturesData = await argFixturesRes.json()
+        if (argFixturesData.length > 0) {
+          setArgentinaFixtures(argFixturesData.slice(0, 10).map((f: any) => ({
+            home: f.homeTeam?.name || f.home,
+            away: f.awayTeam?.name || f.away,
+            date: f.date?.split(' ')[0] || f.date,
+            time: f.time || '00:00'
+          })))
+        }
+      } catch (err) {
+        console.error('Error fetching data:', err)
+      } finally {
+        setDataLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -157,15 +273,18 @@ export default function Home() {
     if (activeTab === 'pl') {
       context = `
 Current Premier League Table:
-${LIVE_TABLE.map(t => `${t.pos}. ${t.team} - ${t.pts}pts`).join('\n')}
+${plTable.map((t: any) => `${t.pos}. ${t.team} - ${t.pts}pts`).join('\n')}
 
 This Weekend's Matches:
-${WEEKEND_FIXTURES.map(f => `${f.home} vs ${f.away} (${f.date} ${f.time}) - 1X2: ${f.homeWin}%/${f.draw}%/${f.awayWin}%, Over 2.5: ${f.over25}%, BTTS: ${f.btts}%, Corners: ${f.corners}`).join('\n')}
+${plFixtures.length > 0 ? plFixtures.map((f: any) => `${f.home} vs ${f.away} (${f.date} ${f.time}) - 1X2: ${f.homeWin || 45}%/${f.draw || 30}%/${f.awayWin || 25}%, Over 2.5: ${f.over25 || 55}%, BTTS: ${f.btts || 50}%, Corners: ${f.corners || 11}`).join('\n') : 'Fixtures loading...'}
 
-ML Model trained on 9,455 PL matches. Answer questions about Premier League matches, teams, and betting odds.
+ML Model trained on 10,225 PL matches. Answer questions about Premier League matches, teams, and betting odds.
 `
     } else if (activeTab === 'brazil') {
       context = `
+Brazil Serie A Table:
+${brazilTable.length > 0 ? brazilTable.map((t: any) => `${t.pos}. ${t.team} - ${t.pts}pts`).join('\n') : 'Table loading...'}
+
 Brazil Serie A Data (trained on ${BRAZIL_MODEL.totalMatches.toLocaleString()} matches):
 - Average Goals: ${BRAZIL_MODEL.avgGoals} per match
 - Home Win Rate: ${BRAZIL_MODEL.homeWinRate}%
@@ -174,7 +293,8 @@ Brazil Serie A Data (trained on ${BRAZIL_MODEL.totalMatches.toLocaleString()} ma
 - Over 2.5 Rate: ${BRAZIL_MODEL.over25Rate}%
 - BTTS Rate: ${BRAZIL_MODEL.bttsRate}%
 
-Top Teams: ${BRAZIL_MODEL.topTeams.join(', ')}
+Upcoming Matches:
+${brazilFixtures.length > 0 ? brazilFixtures.map((f: any) => `${f.home} vs ${f.away} (${f.date} ${f.time})`).join('\n') : 'Fixtures loading...'}
 
 Season: April - December (mostly Sat/Sun + midweek Tue-Thu)
 
@@ -182,6 +302,9 @@ ML Model trained on Brazilian football data. Answer questions about Brazil Serie
 `
     } else if (activeTab === 'argentina') {
       context = `
+Argentina Liga Profesional Table:
+${argentinaTable.length > 0 ? argentinaTable.map((t: any) => `${t.pos}. ${t.team} - ${t.pts}pts`).join('\n') : 'Table loading...'}
+
 Argentina Liga Profesional Data (trained on ${ARGENTINA_MODEL.totalMatches.toLocaleString()} matches):
 - Average Goals: ${ARGENTINA_MODEL.avgGoals} per match
 - Home Win Rate: ${ARGENTINA_MODEL.homeWinRate}%
@@ -190,7 +313,8 @@ Argentina Liga Profesional Data (trained on ${ARGENTINA_MODEL.totalMatches.toLoc
 - Over 2.5 Rate: ${ARGENTINA_MODEL.over25Rate}%
 - BTTS Rate: ${ARGENTINA_MODEL.bttsRate}%
 
-Top Teams: ${ARGENTINA_MODEL.topTeams.join(', ')}
+Upcoming Matches:
+${argentinaFixtures.length > 0 ? argentinaFixtures.map((f: any) => `${f.home} vs ${f.away} (${f.date} ${f.time})`).join('\n') : 'Fixtures loading...'}
 
 Season: February - December (mostly Sat/Sun + some Fri/Mon)
 
@@ -295,7 +419,7 @@ Coming soon: Live race data, horse form, trainer stats, and AI predictions.
             
             {/* Live Table */}
             <div className="card">
-              <h2 className="card-title">📊 Live Table</h2>
+              <h2 className="card-title">📊 Live Table {dataLoading && '(Loading...)'}</h2>
               <div className="table-wrapper">
                 <table className="table">
                   <thead>
@@ -309,7 +433,7 @@ Coming soon: Live race data, horse form, trainer stats, and AI predictions.
                     </tr>
                   </thead>
                   <tbody>
-                    {LIVE_TABLE.map((team) => (
+                    {plTable.map((team: any) => (
                       <tr key={team.pos} className={team.pos <= 4 ? 'top-four' : team.pos >= 18 ? 'relegation' : ''}>
                         <td>{team.pos}</td>
                         <td className="team-name">{team.team}</td>
@@ -319,7 +443,7 @@ Coming soon: Live race data, horse form, trainer stats, and AI predictions.
                         </td>
                         <td className="points">{team.pts}</td>
                         <td className="form">
-                          {team.form.split('').map((r, i) => (
+                          {(team.form || '').split('').map((r: string, i: number) => (
                             <span key={i} className={`form-badge ${r.toLowerCase()}`}>{r}</span>
                           ))}
                         </td>
@@ -334,10 +458,10 @@ Coming soon: Live race data, horse form, trainer stats, and AI predictions.
             <div className="card">
               <h2 className="card-title">📅 This Weekend's Matches</h2>
               <div className="fixtures">
-                {WEEKEND_FIXTURES.map((match, i) => {
+                {plFixtures.length > 0 ? plFixtures.map((match: any, i: number) => {
                   const pick = match.homeWin > match.awayWin + 10 ? match.home : 
                               match.awayWin > match.homeWin + 10 ? match.away : 'Draw'
-                  const confidence = Math.max(match.homeWin, match.draw, match.awayWin)
+                  const confidence = Math.max(match.homeWin || 0, match.draw || 0, match.awayWin || 0)
                   
                   return (
                     <div key={i} className="fixture-row">
@@ -354,19 +478,21 @@ Coming soon: Live race data, horse form, trainer stats, and AI predictions.
                         <span className="pick">Pick: {pick}</span>
                       </div>
                       <div className="odds-row">
-                        <span className={`odd ${match.homeWin > 40 ? 'high' : ''}`}>
-                          1: {match.homeWin}%
+                        <span className={`odd ${(match.homeWin || 0) > 40 ? 'high' : ''}`}>
+                          1: {match.homeWin || 0}%
                         </span>
                         <span className="odd">
-                          X: {match.draw}%
+                          X: {match.draw || 0}%
                         </span>
-                        <span className={`odd ${match.awayWin > 40 ? 'high' : ''}`}>
-                          2: {match.awayWin}%
+                        <span className={`odd ${(match.awayWin || 0) > 40 ? 'high' : ''}`}>
+                          2: {match.awayWin || 0}%
                         </span>
                       </div>
                     </div>
                   )
-                })}
+                }) : (
+                  <div className="empty-state">Loading fixtures...</div>
+                )}
               </div>
             </div>
           </div>
@@ -447,8 +573,8 @@ Coming soon: Live race data, horse form, trainer stats, and AI predictions.
           <div className="left-column">
             {/* Brazil Table */}
             <div className="card">
-              <h2 className="card-title">📊 Brazil Serie A Table</h2>
-              <p className="card-subtitle">Season 2025 • April - December</p>
+              <h2 className="card-title">🇧🇷 Brazil Serie A Table {dataLoading && '(Loading...)'}</h2>
+              <p className="card-subtitle">Season 2024 (Latest available on free API)</p>
               <div className="table-wrapper">
                 <table className="table">
                   <thead>
@@ -461,7 +587,7 @@ Coming soon: Live race data, horse form, trainer stats, and AI predictions.
                     </tr>
                   </thead>
                   <tbody>
-                    {BRAZIL_TABLE.map((team) => (
+                    {brazilTable.length > 0 ? brazilTable.map((team: any) => (
                       <tr key={team.pos}>
                         <td>{team.pos}</td>
                         <td className="team-name">{team.team}</td>
@@ -471,7 +597,9 @@ Coming soon: Live race data, horse form, trainer stats, and AI predictions.
                         </td>
                         <td className="points">{team.pts}</td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr><td colSpan={5} style={{textAlign:'center'}}>Loading table...</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -516,7 +644,7 @@ Coming soon: Live race data, horse form, trainer stats, and AI predictions.
               <h2 className="card-title">📅 This Week's Matches</h2>
               <p className="card-subtitle">Sat/Sun + Tue-Thu midweek</p>
               <div className="fixtures">
-                {BRAZIL_FIXTURES.map((match, i) => (
+                {brazilFixtures.length > 0 ? brazilFixtures.map((match: any, i: number) => (
                   <div key={i} className="fixture-row">
                     <div className="fixture-teams">
                       <span className="home-team">{match.home}</span>
@@ -527,10 +655,12 @@ Coming soon: Live race data, horse form, trainer stats, and AI predictions.
                       <span>{match.date} {match.time}</span>
                     </div>
                     <div className="prediction">
-                      <span className="pick">1X2: {match.homeWin}% / {match.draw}% / {match.awayWin}%</span>
+                      <span className="pick">1X2: {BRAZIL_MODEL.homeWinRate}% / {BRAZIL_MODEL.drawRate}% / {BRAZIL_MODEL.awayWinRate}%</span>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="empty-state">Loading fixtures...</div>
+                )}
               </div>
             </div>
 
@@ -571,8 +701,8 @@ Coming soon: Live race data, horse form, trainer stats, and AI predictions.
           <div className="left-column">
             {/* Argentina Table */}
             <div className="card">
-              <h2 className="card-title">📊 Argentina Liga Table</h2>
-              <p className="card-subtitle">Season 2025 • February - December</p>
+              <h2 className="card-title">🇦🇷 Argentina Liga Table {dataLoading && '(Loading...)'}</h2>
+              <p className="card-subtitle">Season 2024 (Latest available on free API)</p>
               <div className="table-wrapper">
                 <table className="table">
                   <thead>
@@ -585,7 +715,7 @@ Coming soon: Live race data, horse form, trainer stats, and AI predictions.
                     </tr>
                   </thead>
                   <tbody>
-                    {ARGENTINA_TABLE.map((team) => (
+                    {argentinaTable.length > 0 ? argentinaTable.map((team: any) => (
                       <tr key={team.pos}>
                         <td>{team.pos}</td>
                         <td className="team-name">{team.team}</td>
@@ -595,7 +725,9 @@ Coming soon: Live race data, horse form, trainer stats, and AI predictions.
                         </td>
                         <td className="points">{team.pts}</td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr><td colSpan={5} style={{textAlign:'center'}}>Loading table...</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -640,7 +772,7 @@ Coming soon: Live race data, horse form, trainer stats, and AI predictions.
               <h2 className="card-title">📅 This Week's Matches</h2>
               <p className="card-subtitle">Sat/Sun + Fri/Mon occasional</p>
               <div className="fixtures">
-                {ARGENTINA_FIXTURES.map((match, i) => (
+                {argentinaFixtures.length > 0 ? argentinaFixtures.map((match: any, i: number) => (
                   <div key={i} className="fixture-row">
                     <div className="fixture-teams">
                       <span className="home-team">{match.home}</span>
@@ -651,10 +783,12 @@ Coming soon: Live race data, horse form, trainer stats, and AI predictions.
                       <span>{match.date} {match.time}</span>
                     </div>
                     <div className="prediction">
-                      <span className="pick">1X2: {match.homeWin}% / {match.draw}% / {match.awayWin}%</span>
+                      <span className="pick">1X2: {ARGENTINA_MODEL.homeWinRate}% / {ARGENTINA_MODEL.drawRate}% / {ARGENTINA_MODEL.awayWinRate}%</span>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="empty-state">Loading fixtures...</div>
+                )}
               </div>
             </div>
 
