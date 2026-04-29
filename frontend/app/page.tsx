@@ -6,8 +6,9 @@ import Link from 'next/link'
 // Password protection
 const CORRECT_PASSWORD='football2024'
 
-// API Base URL
+// API Base URLs
 const API_BASE = '/api/football'
+const SOFASCORE_BASE = '/api/sofascore'
 
 // League IDs for API
 const LEAGUE_KEYS = {
@@ -180,56 +181,56 @@ export default function Home() {
           })))
         }
         
-        // Fetch Brazil standings
-        const brazilRes = await fetch(`${API_BASE}?league=brazil&type=standings`)
-        const brazilData = await brazilRes.json()
-        if (brazilData.teams?.length > 0) {
-          setBrazilTable(brazilData.teams.map((t: any) => ({
-            pos: t.rank,
-            team: t.name,
-            pts: t.points,
-            gd: t.goalDifference,
-            played: t.played,
-            form: t.form || ''
-          })))
+        // Fetch Brazil data from Sofascore
+        try {
+          const brazilRes = await fetch(`${SOFASCORE_BASE}?league=brazil`)
+          const brazilData = await brazilRes.json()
+          if (brazilData.standings?.length > 0) {
+            setBrazilTable(brazilData.standings.map((t: any) => ({
+              pos: t.rank,
+              team: t.team,
+              pts: t.points,
+              gd: t.goalDiff,
+              played: t.played,
+              form: ''
+            })))
+          }
+          if (brazilData.fixtures?.length > 0) {
+            setBrazilFixtures(brazilData.fixtures.map((f: any) => ({
+              home: f.home,
+              away: f.away,
+              date: f.date,
+              time: f.time || '00:00'
+            })))
+          }
+        } catch (err) {
+          console.error('Brazil data error:', err)
         }
         
-        // Fetch Brazil fixtures
-        const brazilFixturesRes = await fetch(`${API_BASE}?league=brazil&type=fixtures`)
-        const brazilFixturesData = await brazilFixturesRes.json()
-        if (brazilFixturesData.length > 0) {
-          setBrazilFixtures(brazilFixturesData.slice(0, 10).map((f: any) => ({
-            home: f.homeTeam?.name || f.home,
-            away: f.awayTeam?.name || f.away,
-            date: f.date?.split(' ')[0] || f.date,
-            time: f.time || '00:00'
-          })))
-        }
-        
-        // Fetch Argentina standings
-        const argRes = await fetch(`${API_BASE}?league=argentina&type=standings`)
-        const argData = await argRes.json()
-        if (argData.teams?.length > 0) {
-          setArgentinaTable(argData.teams.map((t: any) => ({
-            pos: t.rank,
-            team: t.name,
-            pts: t.points,
-            gd: t.goalDifference,
-            played: t.played,
-            form: t.form || ''
-          })))
-        }
-        
-        // Fetch Argentina fixtures
-        const argFixturesRes = await fetch(`${API_BASE}?league=argentina&type=fixtures`)
-        const argFixturesData = await argFixturesRes.json()
-        if (argFixturesData.length > 0) {
-          setArgentinaFixtures(argFixturesData.slice(0, 10).map((f: any) => ({
-            home: f.homeTeam?.name || f.home,
-            away: f.awayTeam?.name || f.away,
-            date: f.date?.split(' ')[0] || f.date,
-            time: f.time || '00:00'
-          })))
+        // Fetch Argentina data from Sofascore
+        try {
+          const argRes = await fetch(`${SOFASCORE_BASE}?league=argentina`)
+          const argData = await argRes.json()
+          if (argData.standings?.length > 0) {
+            setArgentinaTable(argData.standings.map((t: any) => ({
+              pos: t.rank,
+              team: t.team,
+              pts: t.points,
+              gd: t.goalDiff,
+              played: t.played,
+              form: ''
+            })))
+          }
+          if (argData.fixtures?.length > 0) {
+            setArgentinaFixtures(argData.fixtures.map((f: any) => ({
+              home: f.home,
+              away: f.away,
+              date: f.date,
+              time: f.time || '00:00'
+            })))
+          }
+        } catch (err) {
+          console.error('Argentina data error:', err)
         }
       } catch (err) {
         console.error('Error fetching data:', err)
@@ -574,7 +575,7 @@ Coming soon: Live race data, horse form, trainer stats, and AI predictions.
             {/* Brazil Table */}
             <div className="card">
               <h2 className="card-title">🇧🇷 Brazil Serie A Table {dataLoading && '(Loading...)'}</h2>
-              <p className="card-subtitle">Season 2024 (Latest available on free API)</p>
+              <p className="card-subtitle">LIVE 2026 Season via Sofascore</p>
               <div className="table-wrapper">
                 <table className="table">
                   <thead>
@@ -702,7 +703,7 @@ Coming soon: Live race data, horse form, trainer stats, and AI predictions.
             {/* Argentina Table */}
             <div className="card">
               <h2 className="card-title">🇦🇷 Argentina Liga Table {dataLoading && '(Loading...)'}</h2>
-              <p className="card-subtitle">Season 2024 (Latest available on free API)</p>
+              <p className="card-subtitle">LIVE 2026 Season via Sofascore</p>
               <div className="table-wrapper">
                 <table className="table">
                   <thead>
