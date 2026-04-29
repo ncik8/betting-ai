@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
-const BASE_URL = 'https://www.racing-odds.com';
+const ODDS_BASE_URL = 'https://www.racing-odds.com';
+const HKJC_BASE_URL = 'https://racing.hkjc.com/en-us/local/information';
 
 interface Horse {
   name: string;
@@ -24,7 +25,7 @@ const fetchPage = async (url: string) => {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     },
-    next: { revalidate: 300 } // 5 min cache
+    next: { revalidate: 60 } // 1 min cache
   });
   return resp.text();
 };
@@ -83,33 +84,52 @@ const getToday = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-const getRaceTimes = async (venue: string, date: string): Promise<string[]> => {
-  // Race times are listed on the main HK racecards page, not the daily page
-  const url = `${BASE_URL}/hong-kong-racecards`;
-  const html = await fetchPage(url);
+// Get actual race times from HKJC website
+const getRaceTimesFromHKJC = async (venue: string): Promise<Record<number, string>> => {
+  // venue: 'HV' or 'ST'
+  const raceTimes: Record<number, string> = {};
   
-  const times: string[] = [];
-  // Match: /daily/happy-valley/2026-04-29/12-40 or /daily/sha-tin/2026-04-29/14-10
-  const regex = new RegExp(`/daily/${venue}/${date}/(\\d{2}-\\d{2})`, 'g');
-  let match;
-  while ((match = regex.exec(html)) !== null) {
-    times.push(match[1]);
+  // Try races 1-12 (HK races rarely go above 12)
+  for (let raceNo = 1; raceNo <= 12; raceNo++) {
+    try {
+      const date = getToday().replace(/-/g, '/');
+      const url = `${HKJC_BASE_URL}/racecard?racedate=${date}&Racecourse=${venue}&RaceNo=${raceNo}`;
+      const html = await fetchPage(url);
+      
+      // Extract time from HKJC page - look for 24hr format like "18:40"
+      const timeMatch = /(\d{2}):(\d{2})/.exec(html);
+      if (timeMatch) {
+        raceTimes[raceNo] = `${timeMatch[1]}:${timeMatch[2]}`;
+      } else {
+        // No more races found, stop searching
+        break;
+      }
+    } catch {
+      break;
+    }
   }
   
-  return Array.from(new Set(times)).sort();
+  return raceTimes;
 };
 
-// Convert UK time (GMT) to HK time (GMT+8)
-const convertToHKTime = (ukTime: string): string => {
-  const [hours, minutes] = ukTime.split(':').map(Number);
-  let hkHour = hours + 8;
-  // Handle next day (if +8 crosses midnight)
-  if (hkHour >= 24) hkHour -= 24;
-  return `${String(hkHour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+// Map HKJC venue code to racing-odds.com format
+const hkjcToOddsVenue = (hkjcVenue: string): string => {
+  const map: Record<string, string> = {
+    'HV': 'happy-valley',
+    'ST': 'sha-tin'
+  };
+  return map[hkjcVenue] || hkjcVenue.toLowerCase();
 };
 
-const getRaceCard = async (date: string, venue: string, raceTime: string): Promise<Race | null> => {
-  const url = `${BASE_URL}/daily/${venue}/${date}/${raceTime}`;
+// Get race card from racing-odds.com and use actual HKJC time
+const getRaceCard = async (
+  date: string, 
+  oddsVenue: string, 
+  raceNo: number, 
+  actualTime: string
+): Promise<Race | null> => {
+  // racing-odds.com uses format like /daily/happy-valley/2026-04-29/13-10
+  const url = `${ODDS_BASE_URL}/daily/${oddsVenue}/${date}/${raceNo}`;
   const html = await fetchPage(url);
   
   if (!html.includes('horse-container')) {
@@ -118,12 +138,12 @@ const getRaceCard = async (date: string, venue: string, raceTime: string): Promi
   
   // Extract race name from h1
   const h1Match = /<h1[^>]*>([^<]+)<\/h1>/.exec(html);
-  const raceName = h1Match ? h1Match[1] : 'Unknown Race';
+  const raceName = h1Match ? h1Match[1] : `Race ${raceNo}`;
   
   const horses = parseHorseContainer(html);
   
   return {
-    time: convertToHKTime(raceTime.replace('-', ':')),
+    time: actualTime, // Use actual HKJC time
     race_name: raceName,
     horses
   };
@@ -132,23 +152,32 @@ const getRaceCard = async (date: string, venue: string, raceTime: string): Promi
 export async function GET() {
   try {
     const date = getToday();
-    const venues = ['happy-valley', 'sha-tin'];
+    const hkjcVenues = ['HV', 'ST'];
     const results: Record<string, { venue: string; date: string; races: Race[] }> = {};
     
-    for (const venue of venues) {
-      const times = await getRaceTimes(venue, date);
+    for (const hkjcVenue of hkjcVenues) {
+      const oddsVenue = hkjcToOddsVenue(hkjcVenue);
+      
+      // Get actual race times from HKJC
+      const raceTimes = await getRaceTimesFromHKJC(hkjcVenue);
+      
+      if (Object.keys(raceTimes).length === 0) {
+        continue; // No races today at this venue
+      }
+      
       const races: Race[] = [];
       
-      for (const time of times) {
-        const race = await getRaceCard(date, venue, time);
+      for (const [raceNoStr, actualTime] of Object.entries(raceTimes)) {
+        const raceNo = parseInt(raceNoStr);
+        const race = await getRaceCard(date, oddsVenue, raceNo, actualTime);
         if (race && race.horses.length > 0) {
           races.push(race);
         }
       }
       
       if (races.length > 0) {
-        results[venue] = {
-          venue,
+        results[oddsVenue] = {
+          venue: oddsVenue,
           date,
           races
         };
