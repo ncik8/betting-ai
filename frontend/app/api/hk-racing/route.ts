@@ -77,10 +77,12 @@ const getToday = () => {
 };
 
 const getRaceTimes = async (venue: string, date: string): Promise<string[]> => {
-  const url = `${BASE_URL}/daily/${venue}/${date}`;
+  // Race times are listed on the main HK racecards page, not the daily page
+  const url = `${BASE_URL}/hong-kong-racecards`;
   const html = await fetchPage(url);
   
   const times: string[] = [];
+  // Match: /daily/happy-valley/2026-04-29/12-40 or /daily/sha-tin/2026-04-29/14-10
   const regex = new RegExp(`/daily/${venue}/${date}/(\\d{2}-\\d{2})`, 'g');
   let match;
   while ((match = regex.exec(html)) !== null) {
