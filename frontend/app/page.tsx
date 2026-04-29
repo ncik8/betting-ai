@@ -71,6 +71,42 @@ const ARGENTINA_MODEL = {
   prediction: { homeWin: 44, draw: 29, awayWin: 27, over25: 58, btts: 43 }
 }
 
+// Brazil Serie A Table (scraped - update regularly)
+const BRAZIL_TABLE = [
+  { pos: 1,  team: 'Flamengo',        pts: 0, gd: 0, played: 0, form: '' },
+  { pos: 2,  team: 'Palmeiras',       pts: 0, gd: 0, played: 0, form: '' },
+  { pos: 3,  team: 'Santos',           pts: 0, gd: 0, played: 0, form: '' },
+  { pos: 4,  team: 'São Paulo',        pts: 0, gd: 0, played: 0, form: '' },
+  { pos: 5,  team: 'Corinthians',      pts: 0, gd: 0, played: 0, form: '' },
+]
+
+// Brazil Serie A Fixtures (update weekly)
+const BRAZIL_FIXTURES = [
+  { home: 'Flamengo', away: 'Palmeiras', date: 'TBD', time: 'TBD', homeWin: 47, draw: 26, awayWin: 27, over25: 62, btts: 46 },
+]
+
+// Argentina Liga Profesional Table (scraped - update regularly)
+const ARGENTINA_TABLE = [
+  { pos: 1,  team: 'River Plate',     pts: 0, gd: 0, played: 0, form: '' },
+  { pos: 2,  team: 'Boca Juniors',    pts: 0, gd: 0, played: 0, form: '' },
+  { pos: 3,  team: 'Racing Club',     pts: 0, gd: 0, played: 0, form: '' },
+  { pos: 4,  team: 'Independiente',   pts: 0, gd: 0, played: 0, form: '' },
+  { pos: 5,  team: 'San Lorenzo',      pts: 0, gd: 0, played: 0, form: '' },
+]
+
+// Argentina Fixtures (update weekly)
+const ARGENTINA_FIXTURES = [
+  { home: 'River Plate', away: 'Boca Juniors', date: 'TBD', time: 'TBD', homeWin: 44, draw: 29, awayWin: 27, over25: 58, btts: 43 },
+]
+
+// Chat context messages per league
+const CHAT_INTROS = {
+  pl: '👋 Hi! I\'m your Premier League betting assistant. Ask me anything about this weekend\'s matches!',
+  brazil: '👋 Olá! I\'m your Brazil Serie A betting assistant. Ask me about Flamengo, Palmeiras, or any Brazilian matches!',
+  argentina: '👋 Hola! I\'m your Argentina Liga Profesional betting assistant. Ask me about River Plate, Boca Juniors, or any Argentine matches!',
+  racing: '👋 Hi! I\'m your HK Horse Racing assistant. Racing happens Wed (Happy Valley) & Sat/Sun (Sha Tin).'
+}
+
 // AI Chat
 interface Message {
   role: 'user' | 'assistant'
@@ -80,9 +116,9 @@ interface Message {
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
-  const [activeTab, setActiveTab] = useState<'football' | 'racing' | 'south_america'>('football')
+  const [activeTab, setActiveTab] = useState<'pl' | 'brazil' | 'argentina' | 'racing'>('pl')
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: '👋 Hi! I\'m your Premier League betting assistant. Ask me anything about this weekend\'s matches!' }
+    { role: 'assistant', content: CHAT_INTROS.pl }
   ])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -91,6 +127,12 @@ export default function Home() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Reset chat when switching leagues
+  useEffect(() => {
+    setMessages([{ role: 'assistant', content: CHAT_INTROS[activeTab] }])
+    setInput('')
+  }, [activeTab])
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
@@ -110,14 +152,61 @@ export default function Home() {
     setMessages(prev => [...prev, { role: 'user', content: userMessage }])
     setIsLoading(true)
 
-    // Build context with live data
-    const context = `
+    // Build context based on active league
+    let context = ''
+    if (activeTab === 'pl') {
+      context = `
 Current Premier League Table:
 ${LIVE_TABLE.map(t => `${t.pos}. ${t.team} - ${t.pts}pts`).join('\n')}
 
 This Weekend's Matches:
 ${WEEKEND_FIXTURES.map(f => `${f.home} vs ${f.away} (${f.date} ${f.time}) - 1X2: ${f.homeWin}%/${f.draw}%/${f.awayWin}%, Over 2.5: ${f.over25}%, BTTS: ${f.btts}%, Corners: ${f.corners}`).join('\n')}
+
+ML Model trained on 9,455 PL matches. Answer questions about Premier League matches, teams, and betting odds.
 `
+    } else if (activeTab === 'brazil') {
+      context = `
+Brazil Serie A Data (trained on ${BRAZIL_MODEL.totalMatches.toLocaleString()} matches):
+- Average Goals: ${BRAZIL_MODEL.avgGoals} per match
+- Home Win Rate: ${BRAZIL_MODEL.homeWinRate}%
+- Draw Rate: ${BRAZIL_MODEL.drawRate}%
+- Away Win Rate: ${BRAZIL_MODEL.awayWinRate}%
+- Over 2.5 Rate: ${BRAZIL_MODEL.over25Rate}%
+- BTTS Rate: ${BRAZIL_MODEL.bttsRate}%
+
+Top Teams: ${BRAZIL_MODEL.topTeams.join(', ')}
+
+Season: April - December (mostly Sat/Sun + midweek Tue-Thu)
+
+ML Model trained on Brazilian football data. Answer questions about Brazil Serie A matches and betting.
+`
+    } else if (activeTab === 'argentina') {
+      context = `
+Argentina Liga Profesional Data (trained on ${ARGENTINA_MODEL.totalMatches.toLocaleString()} matches):
+- Average Goals: ${ARGENTINA_MODEL.avgGoals} per match
+- Home Win Rate: ${ARGENTINA_MODEL.homeWinRate}%
+- Draw Rate: ${ARGENTINA_MODEL.drawRate}%
+- Away Win Rate: ${ARGENTINA_MODEL.awayWinRate}%
+- Over 2.5 Rate: ${ARGENTINA_MODEL.over25Rate}%
+- BTTS Rate: ${ARGENTINA_MODEL.bttsRate}%
+
+Top Teams: ${ARGENTINA_MODEL.topTeams.join(', ')}
+
+Season: February - December (mostly Sat/Sun + some Fri/Mon)
+
+ML Model trained on Argentine football data. Answer questions about Argentina Liga Profesional matches and betting.
+`
+    } else if (activeTab === 'racing') {
+      context = `
+HK Horse Racing Information:
+- Racing happens Wed (Happy Valley) and Sat/Sun (Sha Tin)
+- Weather and grass conditions affect performance
+- Happy Valley: Turf (Wednesday)
+- Sha Tin: Turf (Saturday/Sunday)
+
+Coming soon: Live race data, horse form, trainer stats, and AI predictions.
+`
+    }
 
     try {
       const res = await fetch('/api/chat', {
@@ -173,10 +262,22 @@ ${WEEKEND_FIXTURES.map(f => `${f.home} vs ${f.away} (${f.date} ${f.time}) - 1X2:
         </div>
         <div className="tabs">
           <button 
-            className={`tab ${activeTab === 'football' ? 'active' : ''}`}
-            onClick={() => setActiveTab('football')}
+            className={`tab ${activeTab === 'pl' ? 'active' : ''}`}
+            onClick={() => setActiveTab('pl')}
           >
-            🏆 Football
+            🏆 Premier League
+          </button>
+          <button 
+            className={`tab ${activeTab === 'brazil' ? 'active' : ''}`}
+            onClick={() => setActiveTab('brazil')}
+          >
+            🇧🇷 Brazil
+          </button>
+          <button 
+            className={`tab ${activeTab === 'argentina' ? 'active' : ''}`}
+            onClick={() => setActiveTab('argentina')}
+          >
+            🇦🇷 Argentina
           </button>
           <button 
             className={`tab ${activeTab === 'racing' ? 'active' : ''}`}
@@ -184,16 +285,10 @@ ${WEEKEND_FIXTURES.map(f => `${f.home} vs ${f.away} (${f.date} ${f.time}) - 1X2:
           >
             🐴 HK Racing
           </button>
-          <button 
-            className={`tab ${activeTab === 'south_america' ? 'active' : ''}`}
-            onClick={() => setActiveTab('south_america')}
-          >
-            🌎 SA Football
-          </button>
         </div>
       </header>
 
-      {activeTab === 'football' && (
+      {activeTab === 'pl' && (
         <div className="content-grid">
           {/* Left Column: Table + Fixtures */}
           <div className="left-column">
@@ -347,15 +442,45 @@ ${WEEKEND_FIXTURES.map(f => `${f.home} vs ${f.away} (${f.date} ${f.time}) - 1X2:
         </div>
       )}
 
-      {activeTab === 'south_america' && (
+      {activeTab === 'brazil' && (
         <div className="content-grid">
-          {/* Brazil Section */}
           <div className="left-column">
+            {/* Brazil Table */}
             <div className="card">
-              <div className="card-header-brazil">
-                <h2 className="card-title">🇧🇷 Brazil Serie A</h2>
-                <span className="data-badge">{BRAZIL_MODEL.totalMatches.toLocaleString()} matches • {BRAZIL_MODEL.seasons} seasons</span>
+              <h2 className="card-title">📊 Brazil Serie A Table</h2>
+              <p className="card-subtitle">Season 2025 • April - December</p>
+              <div className="table-wrapper">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Team</th>
+                      <th>P</th>
+                      <th>GD</th>
+                      <th>Pts</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {BRAZIL_TABLE.map((team) => (
+                      <tr key={team.pos}>
+                        <td>{team.pos}</td>
+                        <td className="team-name">{team.team}</td>
+                        <td>{team.played}</td>
+                        <td className={team.gd > 0 ? 'positive' : team.gd < 0 ? 'negative' : ''}>
+                          {team.gd > 0 ? '+' : ''}{team.gd}
+                        </td>
+                        <td className="points">{team.pts}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
+            </div>
+
+            {/* Brazil ML Stats */}
+            <div className="card">
+              <h2 className="card-title">🤖 ML Model Stats</h2>
+              <span className="data-badge">{BRAZIL_MODEL.totalMatches.toLocaleString()} matches trained • {BRAZIL_MODEL.seasons} seasons</span>
               
               <div className="sa-stats">
                 <div className="sa-stat">
@@ -382,33 +507,104 @@ ${WEEKEND_FIXTURES.map(f => `${f.home} vs ${f.away} (${f.date} ${f.time}) - 1X2:
                   <span key={i} className="sa-team-badge">{team}</span>
                 ))}
               </div>
-
-              <h3 className="sa-section-title">General Prediction Model</h3>
-              <div className="sa-prediction">
-                <div className="sa-pred-row">
-                  <span>1 (Home Win)</span>
-                  <span className="sa-pred-value">{BRAZIL_MODEL.prediction.homeWin}%</span>
-                </div>
-                <div className="sa-pred-row">
-                  <span>X (Draw)</span>
-                  <span className="sa-pred-value">{BRAZIL_MODEL.prediction.draw}%</span>
-                </div>
-                <div className="sa-pred-row">
-                  <span>2 (Away Win)</span>
-                  <span className="sa-pred-value">{BRAZIL_MODEL.prediction.awayWin}%</span>
-                </div>
-              </div>
-              <p className="sa-note">📅 Matches mainly Sat/Sun + midweek Tue-Thu</p>
             </div>
           </div>
 
-          {/* Argentina Section */}
           <div className="right-column">
+            {/* Brazil Fixtures */}
             <div className="card">
-              <div className="card-header-argentina">
-                <h2 className="card-title">🇦🇷 Argentina Liga Profesional</h2>
-                <span className="data-badge">{ARGENTINA_MODEL.totalMatches.toLocaleString()} matches • {ARGENTINA_MODEL.seasons} seasons</span>
+              <h2 className="card-title">📅 This Week's Matches</h2>
+              <p className="card-subtitle">Sat/Sun + Tue-Thu midweek</p>
+              <div className="fixtures">
+                {BRAZIL_FIXTURES.map((match, i) => (
+                  <div key={i} className="fixture-row">
+                    <div className="fixture-teams">
+                      <span className="home-team">{match.home}</span>
+                      <span className="vs">vs</span>
+                      <span className="away-team">{match.away}</span>
+                    </div>
+                    <div className="fixture-meta">
+                      <span>{match.date} {match.time}</span>
+                    </div>
+                    <div className="prediction">
+                      <span className="pick">1X2: {match.homeWin}% / {match.draw}% / {match.awayWin}%</span>
+                    </div>
+                  </div>
+                ))}
               </div>
+            </div>
+
+            {/* Brazil AI Chat */}
+            <div className="card chat-card">
+              <h2 className="card-title">💬 Brazil Serie A AI</h2>
+              <div className="chat-messages">
+                {messages.map((msg, i) => (
+                  <div key={i} className={`message ${msg.role}`}>
+                    <div className="message-content">{msg.content}</div>
+                  </div>
+                ))}
+                {isLoading && (
+                  <div className="message assistant">
+                    <div className="message-content typing">Thinking...</div>
+                  </div>
+                )}
+                <div ref={chatEndRef} />
+              </div>
+              <form onSubmit={handleSendMessage} className="chat-input-form">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask about Brazil Serie A..."
+                  className="chat-input"
+                  disabled={isLoading}
+                />
+                <button type="submit" className="send-button" disabled={isLoading}>➤</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'argentina' && (
+        <div className="content-grid">
+          <div className="left-column">
+            {/* Argentina Table */}
+            <div className="card">
+              <h2 className="card-title">📊 Argentina Liga Table</h2>
+              <p className="card-subtitle">Season 2025 • February - December</p>
+              <div className="table-wrapper">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Team</th>
+                      <th>P</th>
+                      <th>GD</th>
+                      <th>Pts</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ARGENTINA_TABLE.map((team) => (
+                      <tr key={team.pos}>
+                        <td>{team.pos}</td>
+                        <td className="team-name">{team.team}</td>
+                        <td>{team.played}</td>
+                        <td className={team.gd > 0 ? 'positive' : team.gd < 0 ? 'negative' : ''}>
+                          {team.gd > 0 ? '+' : ''}{team.gd}
+                        </td>
+                        <td className="points">{team.pts}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Argentina ML Stats */}
+            <div className="card">
+              <h2 className="card-title">🤖 ML Model Stats</h2>
+              <span className="data-badge">{ARGENTINA_MODEL.totalMatches.toLocaleString()} matches trained • {ARGENTINA_MODEL.seasons} seasons</span>
               
               <div className="sa-stats">
                 <div className="sa-stat">
@@ -435,27 +631,36 @@ ${WEEKEND_FIXTURES.map(f => `${f.home} vs ${f.away} (${f.date} ${f.time}) - 1X2:
                   <span key={i} className="sa-team-badge">{team}</span>
                 ))}
               </div>
+            </div>
+          </div>
 
-              <h3 className="sa-section-title">General Prediction Model</h3>
-              <div className="sa-prediction">
-                <div className="sa-pred-row">
-                  <span>1 (Home Win)</span>
-                  <span className="sa-pred-value">{ARGENTINA_MODEL.prediction.homeWin}%</span>
-                </div>
-                <div className="sa-pred-row">
-                  <span>X (Draw)</span>
-                  <span className="sa-pred-value">{ARGENTINA_MODEL.prediction.draw}%</span>
-                </div>
-                <div className="sa-pred-row">
-                  <span>2 (Away Win)</span>
-                  <span className="sa-pred-value">{ARGENTINA_MODEL.prediction.awayWin}%</span>
-                </div>
+          <div className="right-column">
+            {/* Argentina Fixtures */}
+            <div className="card">
+              <h2 className="card-title">📅 This Week's Matches</h2>
+              <p className="card-subtitle">Sat/Sun + Fri/Mon occasional</p>
+              <div className="fixtures">
+                {ARGENTINA_FIXTURES.map((match, i) => (
+                  <div key={i} className="fixture-row">
+                    <div className="fixture-teams">
+                      <span className="home-team">{match.home}</span>
+                      <span className="vs">vs</span>
+                      <span className="away-team">{match.away}</span>
+                    </div>
+                    <div className="fixture-meta">
+                      <span>{match.date} {match.time}</span>
+                    </div>
+                    <div className="prediction">
+                      <span className="pick">1X2: {match.homeWin}% / {match.draw}% / {match.awayWin}%</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <p className="sa-note">📅 Matches mainly Sat/Sun + some Fri/Mon</p>
             </div>
 
-            <div className="card">
-              <h2 className="card-title">💬 Ask About SA Football</h2>
+            {/* Argentina AI Chat */}
+            <div className="card chat-card">
+              <h2 className="card-title">💬 Argentina Liga AI</h2>
               <div className="chat-messages">
                 {messages.map((msg, i) => (
                   <div key={i} className={`message ${msg.role}`}>
@@ -474,13 +679,11 @@ ${WEEKEND_FIXTURES.map(f => `${f.home} vs ${f.away} (${f.date} ${f.time}) - 1X2:
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Who should I bet on in Brazil/Argentina?"
+                  placeholder="Ask about Argentina Liga..."
                   className="chat-input"
                   disabled={isLoading}
                 />
-                <button type="submit" className="send-button" disabled={isLoading}>
-                  ➤
-                </button>
+                <button type="submit" className="send-button" disabled={isLoading}>➤</button>
               </form>
             </div>
           </div>
@@ -638,6 +841,12 @@ ${WEEKEND_FIXTURES.map(f => `${f.home} vs ${f.away} (${f.date} ${f.time}) - 1X2:
           font-weight: 600;
           margin-bottom: 1rem;
           color: #fff;
+        }
+
+        .card-subtitle {
+          font-size: 0.75rem;
+          color: #666;
+          margin-bottom: 1rem;
         }
 
         /* Table */
