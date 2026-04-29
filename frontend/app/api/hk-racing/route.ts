@@ -38,7 +38,7 @@ const parseHorseContainer = (html: string): Horse[] => {
   
   while ((match = containerRegex.exec(html)) !== null) {
     const block = match[1];
-    const horse: Horse = {};
+    const horse: Partial<Horse> = {};
     
     // Name
     const nameMatch = /<span class="css-z5vkvz"[^>]*>([^<]+)<\/span>/.exec(block);
@@ -65,7 +65,7 @@ const parseHorseContainer = (html: string): Horse[] => {
       else if (label === 'Draw:') horse.draw = value;
     }
     
-    if (horse.name) horses.push(horse);
+    if (horse.name) horses.push(horse as Horse);
   }
   
   return horses;
@@ -87,7 +87,7 @@ const getRaceTimes = async (venue: string, date: string): Promise<string[]> => {
     times.push(match[1]);
   }
   
-  return [...new Set(times)].sort();
+  return Array.from(new Set(times)).sort();
 };
 
 const getRaceCard = async (date: string, venue: string, raceTime: string): Promise<Race | null> => {

@@ -109,7 +109,7 @@ export async function GET(request: Request) {
         season: leagueConfig.season
       });
       
-      const formatted = formatStandings(data);
+      const formatted: any = formatStandings(data);
       
       // Add note if showing old season (free tier limitation)
       if (league !== 'premier_league' && formatted.season !== 2024) {
