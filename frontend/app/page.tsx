@@ -268,7 +268,7 @@ export default function Home() {
         </div>
       </header>
 
-      {activeTab === 'pl' && <PLContent {...{ plTable, plFixtures, dataLoading, messages, input, isLoading, chatEndRef, handleSendMessage, setInput, selectedMatch, matchDetails, matchLoading, handleMatchClick, handleAskAboutMatch }} />}
+      {activeTab === 'pl' && <PLContent {...{ plTable, plFixtures, dataLoading, messages, input, isLoading, chatEndRef, handleSendMessage, setInput, selectedMatch, matchDetails, matchLoading, handleMatchClick, handleAskAboutMatch, setSelectedMatch, setMatchDetails }} />}
       {activeTab === 'brazil' && <BrazilContent {...{ brazilTable, brazilFixtures, dataLoading, messages, input, isLoading, chatEndRef, handleSendMessage, setInput }} />}
       {activeTab === 'argentina' && <ArgentinaContent {...{ argentinaTable, argentinaFixtures, dataLoading, messages, input, isLoading, chatEndRef, handleSendMessage, setInput }} />}
       {activeTab === 'racing' && <RacingContent {...{ hkRacingData, hkWeather, messages, input, isLoading, chatEndRef, handleSendMessage, setInput, refreshRacingData, dataLoading }} />}
@@ -277,7 +277,7 @@ export default function Home() {
 }
 
 // PL Content Component
-function PLContent({ plTable, plFixtures, dataLoading, messages, input, isLoading, chatEndRef, handleSendMessage, setInput, selectedMatch, matchDetails, matchLoading, handleMatchClick, handleAskAboutMatch }: any) {
+function PLContent({ plTable, plFixtures, dataLoading, messages, input, isLoading, chatEndRef, handleSendMessage, setInput, selectedMatch, matchDetails, matchLoading, handleMatchClick, handleAskAboutMatch, setSelectedMatch, setMatchDetails }: any) {
   return (
     <div className="content-grid">
       <div className="left-column">
