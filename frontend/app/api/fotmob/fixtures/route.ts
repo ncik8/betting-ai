@@ -18,51 +18,9 @@ export async function GET() {
 
     const html = await response.text();
 
-    // Extract match data from the page
-    // FotMob embeds match data in JSON scripts
-    const matches: any[] = [];
+    // Try to extract match data from page
+    const matches = extractMatchesFromHTML(html);
 
-    // Look for match data patterns in the HTML
-    // Format: {"id":12345,"homeTeam":"Arsenal","awayTeam":"Fulham"...}
-    const matchIdPattern = /"matchId"\s*:\s*(\d+)/g;
-    const teamNamePattern = /"homeTeam"\s*:\s*"([^"]+)"|"awayTeam"\s*:\s*"([^"]+)"/g;
-    const scorePattern = /"score"\s*:\s*"(\d+)"/g;
-    const statusPattern = /"status"\s*:\s*"([^"]+)"/g;
-    const timePattern = /"time"\s*:\s*"([^"]+)"|"kickoffTime"\s*:\s*"([^"]+)"|"date"\s*:\s*"([^"]+)"/g;
-
-    // Try to find embedded JSON data
-    const jsonDataPattern = /window\.__NEXT_DATA__\s*=\s*(\{.*?\});/s;
-    const nextDataMatch = html.match(jsonDataPattern);
-
-    if (nextDataMatch) {
-      try {
-        const nextData = JSON.parse(nextDataMatch[1]);
-        // Navigate through the structure to find matches
-        const props = nextData.props?.pageProps || {};
-        matches.push(...extractMatchesFromProps(props));
-      } catch (e) {
-        console.log('Failed to parse __NEXT_DATA__');
-      }
-    }
-
-    // If no matches from JSON, try regex extraction
-    if (matches.length === 0) {
-      // Look for match cards in the HTML
-      const matchCardPattern = /data-matchid=["'](\d+)["'][^>]*>.*?>([^<]+)\s+(\d+)\s*-\s*(\d+)\s+([^<]+)</gs;
-      let matchMatch;
-      while ((matchMatch = matchCardPattern.exec(html)) !== null) {
-        matches.push({
-          id: matchMatch[1],
-          homeTeam: matchMatch[2].trim(),
-          awayTeam: matchMatch[5].trim(),
-          homeScore: matchMatch[3],
-          awayScore: matchMatch[4],
-          status: 'FT'
-        });
-      }
-    }
-
-    // Fallback: return sample upcoming fixtures if scraping fails
     if (matches.length === 0) {
       return NextResponse.json({
         success: true,
@@ -86,37 +44,55 @@ export async function GET() {
   }
 }
 
-function extractMatchesFromProps(props: any): any[] {
+function extractMatchesFromHTML(html: string): any[] {
   const matches: any[] = [];
 
-  function search(obj: any) {
-    if (!obj || typeof obj !== 'object') return;
+  // Look for matchId patterns in the HTML
+  const matchIdRegex = /"matchId"\s*:\s*(\d+)/g;
+  const teamNameRegex = /"homeTeam"\s*:\s*"([^"]+)"|"awayTeam"\s*:\s*"([^"]+)"/g;
+  const scoreRegex = /"score"\s*:\s*"(\d+)"/g;
 
-    // Check if this looks like match data
-    if (obj.matchId && obj.homeTeam && obj.awayTeam) {
-      matches.push({
-        id: obj.matchId,
-        homeTeam: obj.homeTeam,
-        awayTeam: obj.awayTeam,
-        homeScore: obj.homeScore || null,
-        awayScore: obj.awayScore || null,
-        status: obj.status || null,
-        kickoffTime: obj.kickoffTime || obj.date || null,
-        leagueId: obj.leagueId
-      });
-    }
+  // Find all match IDs
+  const matchIds: string[] = [];
+  let matchIdMatch;
+  while ((matchIdMatch = matchIdRegex.exec(html)) !== null) {
+    matchIds.push(matchIdMatch[1]);
+  }
 
-    // Recursively search
-    for (const key of Object.keys(obj)) {
-      if (Array.isArray(obj[key])) {
-        obj[key].forEach(search);
-      } else if (typeof obj[key] === 'object') {
-        search(obj[key]);
+  // Find team names
+  const teamNames: string[] = [];
+  let teamMatch;
+  while ((teamMatch = teamNameRegex.exec(html)) !== null) {
+    if (teamMatch[1]) teamNames.push(teamMatch[1]);
+    if (teamMatch[2]) teamNames.push(teamMatch[2]);
+  }
+
+  // Find scores
+  const scores: string[] = [];
+  let scoreMatch;
+  while ((scoreMatch = scoreRegex.exec(html)) !== null) {
+    scores.push(scoreMatch[1]);
+  }
+
+  // Try to build match objects from found data
+  // This is approximate since HTML structure varies
+  if (teamNames.length >= 4) {
+    for (let i = 0; i < Math.min(teamNames.length / 2, 10); i++) {
+      const homeIdx = i * 2;
+      const awayIdx = i * 2 + 1;
+      if (homeIdx + 1 < teamNames.length) {
+        matches.push({
+          id: matchIds[i] || `match_${i}`,
+          homeTeam: teamNames[homeIdx],
+          awayTeam: teamNames[awayIdx] || teamNames[homeIdx + 1],
+          homeScore: scores[i * 2] || null,
+          awayScore: scores[i * 2 + 1] || null,
+          status: scores[i * 2] ? 'FT' : 'NS'
+        });
       }
     }
   }
 
-  search(props);
   return matches;
 }
 
