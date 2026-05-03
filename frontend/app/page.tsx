@@ -97,6 +97,9 @@ export default function Home() {
 
   const [plTable, setPlTable] = useState(FALLBACK_PL_TABLE)
   const [plFixtures, setPlFixtures] = useState(FALLBACK_PL_FIXTURES)
+  const [selectedMatch, setSelectedMatch] = useState<any>(null)
+  const [matchDetails, setMatchDetails] = useState<any>(null)
+  const [matchLoading, setMatchLoading] = useState(false)
   const [brazilTable, setBrazilTable] = useState<any[]>([])
   const [brazilFixtures, setBrazilFixtures] = useState<any[]>([])
   const [argentinaTable, setArgentinaTable] = useState<any[]>([])
@@ -113,6 +116,36 @@ export default function Home() {
       if (racingData.success && racingData.data) setHkRacingData(racingData.data)
     } catch (err) { console.error('HK Racing data error:', err) }
     setDataLoading(false)
+  }
+
+  const handleMatchClick = async (match: any) => {
+    setSelectedMatch(match)
+    setMatchLoading(true)
+    setMatchDetails(null)
+
+    try {
+      // Try to fetch from FotMob API
+      const res = await fetch(`/api/fotmob/match/${match.id || 'test'}`)
+      const data = await res.json()
+      if (data.success && data.data) {
+        setMatchDetails(data.data)
+      }
+    } catch (err) {
+      console.error('Match details error:', err)
+    }
+
+    setMatchLoading(false)
+  }
+
+  const handleAskAboutMatch = () => {
+    if (!selectedMatch) return
+
+    const matchText = selectedMatch.score
+      ? `${selectedMatch.home} ${selectedMatch.score} ${selectedMatch.away}`
+      : `${selectedMatch.home} vs ${selectedMatch.away}`
+
+    setInput(`Tell me about ${matchText}`)
+    setActiveTab('pl')
   }
 
   useEffect(() => {
@@ -235,7 +268,7 @@ export default function Home() {
         </div>
       </header>
 
-      {activeTab === 'pl' && <PLContent {...{ plTable, plFixtures, dataLoading, messages, input, isLoading, chatEndRef, handleSendMessage, setInput }} />}
+      {activeTab === 'pl' && <PLContent {...{ plTable, plFixtures, dataLoading, messages, input, isLoading, chatEndRef, handleSendMessage, setInput, selectedMatch, matchDetails, matchLoading, handleMatchClick, handleAskAboutMatch }} />}
       {activeTab === 'brazil' && <BrazilContent {...{ brazilTable, brazilFixtures, dataLoading, messages, input, isLoading, chatEndRef, handleSendMessage, setInput }} />}
       {activeTab === 'argentina' && <ArgentinaContent {...{ argentinaTable, argentinaFixtures, dataLoading, messages, input, isLoading, chatEndRef, handleSendMessage, setInput }} />}
       {activeTab === 'racing' && <RacingContent {...{ hkRacingData, hkWeather, messages, input, isLoading, chatEndRef, handleSendMessage, setInput, refreshRacingData, dataLoading }} />}
@@ -244,12 +277,14 @@ export default function Home() {
 }
 
 // PL Content Component
-function PLContent({ plTable, plFixtures, dataLoading, messages, input, isLoading, chatEndRef, handleSendMessage, setInput }: any) {
+function PLContent({ plTable, plFixtures, dataLoading, messages, input, isLoading, chatEndRef, handleSendMessage, setInput, selectedMatch, matchDetails, matchLoading, handleMatchClick, handleAskAboutMatch }: any) {
   return (
     <div className="content-grid">
       <div className="left-column">
         <div className="card">
-          <h2 className="card-title">Live Table {dataLoading && '(Loading...)'}</h2>
+          <div className="card-header-row">
+            <h2 className="card-title">Live Table {dataLoading && '(Loading...)'}</h2>
+          </div>
           <div className="table-wrapper">
             <table className="table">
               <thead><tr><th>#</th><th>Team</th><th>P</th><th>GD</th><th>Pts</th><th>Form</th></tr></thead>
@@ -268,22 +303,127 @@ function PLContent({ plTable, plFixtures, dataLoading, messages, input, isLoadin
             </table>
           </div>
         </div>
+
+        {/* Match Details Card */}
+        {selectedMatch && (
+          <div className="card match-details-card">
+            <div className="card-header-row">
+              <h2 className="card-title">
+                {matchLoading ? 'Loading match data...' : `${selectedMatch.home} vs ${selectedMatch.away}`}
+              </h2>
+              <button onClick={() => { setSelectedMatch(null); setMatchDetails(null); }} className="close-btn">×</button>
+            </div>
+
+            {matchLoading && (
+              <div className="loading-spinner">Fetching latest match data from FotMob...</div>
+            )}
+
+            {matchDetails && !matchLoading && (
+              <>
+                <div className="match-teams">
+                  <div className="team-info">
+                    <h3>{matchDetails.homeTeam?.name}</h3>
+                    {matchDetails.homeTeam?.formation && <span className="formation">{matchDetails.homeTeam.formation}</span>}
+                    {matchDetails.homeTeam?.score !== null && <span className="score">{matchDetails.homeTeam.score}</span>}
+                  </div>
+                  <div className="vs-small">vs</div>
+                  <div className="team-info">
+                    <h3>{matchDetails.awayTeam?.name}</h3>
+                    {matchDetails.awayTeam?.formation && <span className="formation">{matchDetails.awayTeam.formation}</span>}
+                    {matchDetails.awayTeam?.score !== null && <span className="score">{matchDetails.awayTeam.score}</span>}
+                  </div>
+                </div>
+
+                <div className="match-meta">
+                  {matchDetails.kickoffTime && <span>🕐 {new Date(matchDetails.kickoffTime).toLocaleString()}</span>}
+                  {matchDetails.venue && <span>📍 {matchDetails.venue}</span>}
+                  {matchDetails.referee && <span>👤 {matchDetails.referee}</span>}
+                </div>
+
+                <div className="lineup-status">
+                  {matchDetails.homeTeam?.lineupAvailable ? (
+                    <span className="lineup-available">✅ Lineup available</span>
+                  ) : (
+                    <span className="lineup-tba">⏳ Lineup not yet published</span>
+                  )}
+                </div>
+
+                {matchDetails.homeTeam?.lineup && (
+                  <div className="lineup-section">
+                    <h4>{matchDetails.homeTeam.name} Lineup:</h4>
+                    <div className="lineup-players">
+                      {matchDetails.homeTeam.lineup.map((p: string, i: number) => (
+                        <span key={i} className="player-badge">{p}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {matchDetails.awayTeam?.lineup && (
+                  <div className="lineup-section">
+                    <h4>{matchDetails.awayTeam.name} Lineup:</h4>
+                    <div className="lineup-players">
+                      {matchDetails.awayTeam.lineup.map((p: string, i: number) => (
+                        <span key={i} className="player-badge">{p}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {matchDetails.keyPlayers?.length > 0 && (
+                  <div className="key-players">
+                    <h4>Key Players:</h4>
+                    <div className="key-players-list">
+                      {matchDetails.keyPlayers.map((p: string, i: number) => (
+                        <span key={i} className="player-badge key">{p}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {matchDetails.lastMeetings?.length > 0 && (
+                  <div className="h2h-section">
+                    <h4>Recent Meetings:</h4>
+                    {matchDetails.lastMeetings.map((m: any, i: number) => (
+                      <div key={i} className="h2h-match">
+                        {m.home} {m.score} {m.away} ({m.date})
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            <button onClick={handleAskAboutMatch} className="ask-ai-btn">
+              Ask AI About This Match
+            </button>
+          </div>
+        )}
+
         <div className="card">
-          <h2 className="card-title">This Weekends Matches</h2>
+          <div className="card-header-row">
+            <h2 className="card-title">This Weekends Matches</h2>
+            <button onClick={() => {}} className="refresh-btn">↻</button>
+          </div>
           <div className="fixtures">
             {plFixtures.length > 0 ? plFixtures.map((match: any, i: number) => {
-              const pick = match.homeWin > match.awayWin + 10 ? match.home : match.awayWin > match.homeWin + 10 ? match.away : 'Draw'
-              const confidence = Math.max(match.homeWin || 0, match.draw || 0, match.awayWin || 0)
+              const isSelected = selectedMatch?.home === match.home && selectedMatch?.away === match.away;
               return (
-                <div key={i} className="fixture-row">
-                  <div className="fixture-teams"><span className="home-team">{match.home}</span><span className="vs">vs</span><span className="away-team">{match.away}</span></div>
-                  <div className="fixture-meta"><span className="fixture-time">{match.date} {match.time}</span><span className="confidence">{confidence.toFixed(0)}% conf</span></div>
-                  <div className="prediction"><span className="pick">Pick: {pick}</span></div>
-                  <div className="odds-row">
-                    <span className={match.homeWin > 40 ? 'high' : ''}>1: {match.homeWin || 0}%</span>
-                    <span>X: {match.draw || 0}%</span>
-                    <span className={match.awayWin > 40 ? 'high' : ''}>2: {match.awayWin || 0}%</span>
+                <div
+                  key={i}
+                  className={`fixture-row ${isSelected ? 'selected' : ''}`}
+                  onClick={() => handleMatchClick(match)}
+                >
+                  <div className="fixture-teams">
+                    <span className={`home-team ${isSelected ? 'selected-team' : ''}`}>{match.home}</span>
+                    <span className="vs">vs</span>
+                    <span className={`away-team ${isSelected ? 'selected-team' : ''}`}>{match.away}</span>
+                    {match.status === 'FT' && <span className="status-badge ft">FT</span>}
+                    {match.status === 'LIVE' && <span className="status-badge live">LIVE</span>}
+                    {match.status === 'NS' && <span className="status-badge ns">{match.time}</span>}
                   </div>
+                  {match.score && <div className="fixture-score">{match.score}</div>}
+                  <div className="fixture-hint">Click to load match details →</div>
                 </div>
               )
             }) : <div className="empty-state">Loading fixtures...</div>}

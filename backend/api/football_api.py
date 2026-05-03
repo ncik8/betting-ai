@@ -16,7 +16,7 @@ API_BASE = "https://v3.football.api-sports.io"
 
 # League IDs
 LEAGUES = {
-    "premier_league": {"id": 39, "season": 2024, "name": "Premier League"},
+    "premier_league": {"id": 39, "season": 2025, "name": "Premier League"},
     "brazil": {"id": 71, "season": 2024, "name": "Serie A"},
     "argentina": {"id": 128, "season": 2024, "name": "Liga Profesional"}
 }

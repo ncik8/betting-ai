@@ -15,28 +15,27 @@ from typing import Dict, List, Optional, Any
 MODELS_DIR = Path(__file__).parent / "trained"
 DATA_DIR = Path(__file__).parent.parent.parent / "data"
 
-# League table with form (updated May 2026)
+# League table with form (updated May 2026 - season 2025/26)
 LIVE_TABLE = {
-    "Arsenal": {"pos": 1, "pts": 73, "gd": 44, "form": "WWLWL"},
-    "Man City": {"pos": 2, "pts": 70, "gd": 38, "form": "DDWWW"},
-    "Man United": {"pos": 3, "pts": 61, "gd": 15, "form": "WDLWW"},
-    "Liverpool": {"pos": 4, "pts": 58, "gd": 26, "form": "DLWWW"},
-    "Aston Villa": {"pos": 5, "pts": 58, "gd": 12, "form": "LWDWL"},
-    "Brighton": {"pos": 6, "pts": 50, "gd": 9, "form": "WWWDW"},
-    "Bournemouth": {"pos": 7, "pts": 49, "gd": 6, "form": "DDWWD"},
-    "Chelsea": {"pos": 8, "pts": 48, "gd": 7, "form": "LLLLL"},
-    "Brentford": {"pos": 9, "pts": 48, "gd": 5, "form": "DDD DL"},
-    "Fulham": {"pos": 10, "pts": 48, "gd": 1, "form": "DWLDW"},
-    "Everton": {"pos": 11, "pts": 47, "gd": -3, "form": "LWDLL"},
-    "Sunderland": {"pos": 12, "pts": 46, "gd": -6, "form": "LWWLL"},
-    "Palace": {"pos": 13, "pts": 43, "gd": -2, "form": "WDWDL"},
-    "Newcastle": {"pos": 14, "pts": 42, "gd": 12, "form": "WLLLL"},
-    "Leeds": {"pos": 15, "pts": 40, "gd": -9, "form": "DDWWD"},
-    "Nottm Forest": {"pos": 16, "pts": 39, "gd": -6, "form": "DWDWW"},
-    "West Ham": {"pos": 17, "pts": 36, "gd": -12, "form": "DLWDW"},
-    "Tottenham": {"pos": 18, "pts": 34, "gd": -12, "form": "DLLDW"},
-    "Burnley": {"pos": 19, "pts": 20, "gd": -34, "form": "DLLLL"},
-    "Wolves": {"pos": 20, "pts": 17, "gd": -36, "form": "WDLLL"},
+    "Arsenal": {"pos": 1, "pts": 76, "gd": 41, "form": "WLLWW"},
+    "Man City": {"pos": 2, "pts": 70, "gd": 37, "form": "DDWWW"},
+    "Man United": {"pos": 3, "pts": 62, "gd": 14, "form": "WDLWW"},
+    "Liverpool": {"pos": 4, "pts": 59, "gd": 13, "form": "DLWWW"},
+    "Aston Villa": {"pos": 5, "pts": 58, "gd": 5, "form": "LWDWL"},
+    "Bournemouth": {"pos": 6, "pts": 52, "gd": 2, "form": "DDWWD"},
+    "Brentford": {"pos": 7, "pts": 51, "gd": 6, "form": "DDDLW"},
+    "Brighton": {"pos": 8, "pts": 50, "gd": 7, "form": "WWDWL"},
+    "Chelsea": {"pos": 9, "pts": 49, "gd": 5, "form": "WWDWW"},
+    "Fulham": {"pos": 10, "pts": 49, "gd": 1, "form": "WDWDW"},
+    "Palace": {"pos": 11, "pts": 46, "gd": 4, "form": "WWLWL"},
+    "Everton": {"pos": 12, "pts": 46, "gd": -1, "form": "LDWDW"},
+    "Newcastle": {"pos": 13, "pts": 44, "gd": 12, "form": "DWWWL"},
+    "Nottm Forest": {"pos": 14, "pts": 42, "gd": 3, "form": "WDWWW"},
+    "West Ham": {"pos": 15, "pts": 39, "gd": -9, "form": "WDWDL"},
+    "Leicester": {"pos": 16, "pts": 36, "gd": -12, "form": "WWLDD"},
+    "Tottenham": {"pos": 17, "pts": 35, "gd": -11, "form": "LDWDL"},
+    "Southampton": {"pos": 18, "pts": 24, "gd": -31, "form": "LDLLL"},
+    "Wolves": {"pos": 19, "pts": 20, "gd": -43, "form": "WLLDL"},
 }
 
 

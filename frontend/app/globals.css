@@ -94,3 +94,51 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .refresh-btn-large { background: #3b82f6; color: white; border: none; border-radius: 8px; padding: 12px 24px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 12px; transition: background 0.2s; }
 .refresh-btn-large:hover { background: #2563eb; }
 .refresh-btn-large:disabled { background: #9ca3af; cursor: not-allowed; }
+
+/* Match Details Card */
+.match-details-card { background: linear-gradient(135deg, #1a1a2e 0%, #2a1a3e 100%); border-color: #4a3a6e; }
+.match-details-card .card-header-row { margin-bottom: 1rem; }
+.match-details-card .close-btn { background: #ef4444; color: white; border: none; border-radius: 50%; width: 28px; height: 28px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.match-details-card .close-btn:hover { background: #dc2626; }
+
+.match-teams { display: flex; justify-content: space-around; align-items: center; padding: 1.5rem 0; border-bottom: 1px solid #333; margin-bottom: 1rem; }
+.match-teams .team-info { text-align: center; }
+.match-teams .team-info h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+.match-teams .formation { display: block; background: #3b82f6; color: white; padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; margin-bottom: 0.5rem; }
+.match-teams .score { display: block; font-size: 2rem; font-weight: bold; color: #4ade80; }
+.match-teams .vs-small { font-size: 0.9rem; color: #666; }
+
+.match-meta { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.85rem; color: #888; margin-bottom: 1rem; }
+.match-meta span { background: #0a0a0f; padding: 4px 10px; border-radius: 4px; }
+
+.lineup-status { margin-bottom: 1rem; }
+.lineup-available { background: #4ade80; color: #000; padding: 6px 12px; border-radius: 4px; font-weight: 600; }
+.lineup-tba { background: #facc15; color: #000; padding: 6px 12px; border-radius: 4px; font-weight: 600; }
+
+.lineup-section, .key-players, .h2h-section { margin-bottom: 1rem; }
+.lineup-section h4, .key-players h4, .h2h-section h4 { font-size: 0.85rem; color: #888; margin-bottom: 0.5rem; text-transform: uppercase; }
+.lineup-players, .key-players-list { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.player-badge { background: #2a2a4e; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; }
+.player-badge.key { background: #4a3a6e; border: 1px solid #6a5a8e; }
+
+.h2h-match { background: #0a0a0f; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; margin-bottom: 0.5rem; }
+
+.ask-ai-btn { width: 100%; background: #4ade80; color: #000; border: none; border-radius: 8px; padding: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+.ask-ai-btn:hover { background: #22c55e; }
+
+.loading-spinner { text-align: center; padding: 2rem; color: #888; }
+
+/* Fixture Row Enhancements */
+.fixture-row { cursor: pointer; transition: all 0.2s; }
+.fixture-row:hover { border-color: #4ade80; background: #0f0f1a; }
+.fixture-row.selected { border-color: #4ade80; background: rgba(74, 222, 128, 0.1); }
+.fixture-row .selected-team { color: #4ade80; font-weight: 600; }
+.fixture-row .status-badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 3px; font-weight: 600; margin-left: 8px; }
+.fixture-row .status-badge.ft { background: #666; }
+.fixture-row .status-badge.live { background: #ef4444; animation: pulse 1.5s infinite; }
+.fixture-row .status-badge.ns { background: #3b82f6; }
+.fixture-row .fixture-score { text-align: center; font-size: 1.2rem; font-weight: bold; color: #4ade80; margin-bottom: 0.5rem; }
+.fixture-row .fixture-hint { font-size: 0.7rem; color: #4ade80; text-align: center; opacity: 0; transition: opacity 0.2s; }
+.fixture-row:hover .fixture-hint { opacity: 1; }
+
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
