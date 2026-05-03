@@ -123,8 +123,9 @@ export default function Home() {
     setMatchDetails(null)
 
     try {
-      // Try to fetch from FotMob API
-      const res = await fetch(`/api/fotmob/match/${match.id || 'test'}`)
+      // Try to fetch from FotMob API - use match.id or generate one from home/away
+      const matchId = match.id || `${match.home}-${match.away}`.toLowerCase().replace(/\s+/g, '-')
+      const res = await fetch(`/api/fotmob/match/${matchId}`)
       const data = await res.json()
       if (data.success && data.data) {
         setMatchDetails(data.data)
@@ -134,6 +135,20 @@ export default function Home() {
     }
 
     setMatchLoading(false)
+  }
+
+  const handleRefreshFixtures = async () => {
+    setDataLoading(true)
+    try {
+      const res = await fetch('/api/fotmob/fixtures')
+      const data = await res.json()
+      if (data.success && data.data?.length > 0) {
+        setPlFixtures(data.data)
+      }
+    } catch (err) {
+      console.error('Refresh fixtures error:', err)
+    }
+    setDataLoading(false)
   }
 
   const handleAskAboutMatch = () => {
@@ -402,7 +417,7 @@ function PLContent({ plTable, plFixtures, dataLoading, messages, input, isLoadin
         <div className="card">
           <div className="card-header-row">
             <h2 className="card-title">This Weekends Matches</h2>
-            <button onClick={() => {}} className="refresh-btn">↻</button>
+            <button onClick={handleRefreshFixtures} className="refresh-btn">↻</button>
           </div>
           <div className="fixtures">
             {plFixtures.length > 0 ? plFixtures.map((match: any, i: number) => {
