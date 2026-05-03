@@ -40,7 +40,7 @@ export async function GET(
 
 function extractMatchData(html: string, matchId: string) {
   // Try to extract __NEXT_DATA__ from the page
-  const nextDataPattern = /window\.__NEXT_DATA__\s*=\s*({.*?});/s;
+  const nextDataPattern = /window\.__NEXT_DATA__\s*=\s*(\{[^}]*(?:\{[^}]*\}[^}]*)*\});/;
   const match = html.match(nextDataPattern);
 
   if (match) {
